@@ -1,0 +1,471 @@
+{% extends "admin/base.html" %}
+{% block title %}CEL{% endblock %}
+
+{% block content %}
+
+    <!-- Header Section -->
+    <div class="mb-6">
+        <div class="mb-3">
+            <h1 class="text-sm font-semibold text-gray-800">CEL</h1>
+            <p class="text-[11px] text-gray-500 mt-0.5">Channel Event Log — granular per-channel events (Asterisk CEL)</p>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="mb-6 bg-white rounded-md border border-gray-200 p-4">
+        <form method="GET" action="">
+            <div class="flex flex-wrap items-end gap-3">
+
+                <!-- Search Box -->
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Search (Name, Number, Channel)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="text"
+                               name="search"
+                               value="{{ search_query|default:'' }}"
+                               placeholder="Search name, number, channel..."
+                               class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-sm placeholder:text-[11px]">
+                    </div>
+                </div>
+
+                <!-- Event Type Filter -->
+                <div class="w-[160px]">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Event Type</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-list text-gray-400 text-sm"></i>
+                        </div>
+                        <select name="event_type"
+                                class="appearance-none pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white pr-8">
+                            <option value="">All Events</option>
+                            {% for type in event_types %}
+                            <option value="{{ type }}" {% if selected_event_type == type %}selected{% endif %}>{{ type }}</option>
+                            {% endfor %}
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <!-- Date From -->
+                <div class="w-[190px]">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">From Date</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="datetime-local"
+                               name="date_from"
+                               value="{{ date_from|default:'' }}"
+                               class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+                    </div>
+                </div>
+
+                <!-- Date To -->
+                <div class="w-[190px]">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">To Date</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="datetime-local"
+                               name="date_to"
+                               value="{{ date_to|default:'' }}"
+                               class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+                    </div>
+                </div>
+
+                <!-- Unique ID -->
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-[11px] font-semibold text-slate-600 mb-1">Unique ID (for complete call timeline)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-hashtag text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="text"
+                               name="uniqueid"
+                               value="{{ selected_uniqueid|default:'' }}"
+                               placeholder="Enter Unique ID for timeline..."
+                               class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-sm font-mono placeholder:text-[11px] placeholder:font-sans">
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-2">
+                    <button type="submit" class="bg-indigo-600 text-white text-xs px-4 py-1.5 rounded hover:bg-indigo-700 transition-colors whitespace-nowrap">
+                        <i class="fas fa-filter mr-1"></i> Apply Filters
+                    </button>
+                    <a href="{% url 'admin_cel' %}" class="bg-gray-100 text-gray-600 text-xs px-4 py-1.5 rounded hover:bg-gray-200 transition-colors whitespace-nowrap">
+                        <i class="fas fa-times mr-1"></i> Clear
+                    </a>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <!-- Timeline View -->
+    {% if timeline_data %}
+    <div class="mb-6 bg-white rounded-md border border-gray-200 p-4">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">
+                Call Timeline:
+                <span class="text-indigo-600 font-mono text-xs">{{ selected_uniqueid }}</span>
+                <span class="ml-2 text-xs font-normal text-gray-500">({{ timeline_data|length }} events)</span>
+            </h3>
+            <a href="{% url 'admin_cel' %}" class="text-xs text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i> Clear Timeline
+            </a>
+        </div>
+
+        <div class="overflow-x-auto pb-4">
+            <div class="relative min-w-max">
+                <div class="absolute top-5 left-10 right-10 h-0.5 bg-gray-200"></div>
+                <div class="relative flex gap-[18px] min-w-max">
+                    {% for event in timeline_data %}
+                    <div class="text-center" style="min-width: 68px;">
+                    <div class="w-10 h-10 mx-auto rounded-full flex items-center justify-center border-2 border-white shadow-sm
+                        {% if event.type == 'CHAN_START' %}bg-blue-100 text-blue-600
+                        {% elif event.type == 'APP_START' %}bg-yellow-100 text-yellow-600
+                        {% elif event.type == 'ANSWER' %}bg-green-100 text-green-600
+                        {% elif event.type == 'BRIDGE_START' or event.type == 'BRIDGE_ENTER' %}bg-purple-100 text-purple-600
+                        {% elif event.type == 'BRIDGE_END' or event.type == 'BRIDGE_EXIT' %}bg-orange-100 text-orange-600
+                        {% elif event.type == 'HANGUP' %}bg-red-100 text-red-600
+                        {% elif event.type == 'CHAN_END' %}bg-gray-100 text-gray-600
+                        {% else %}bg-indigo-100 text-indigo-600{% endif %}">
+                        {% if event.type == 'CHAN_START' %}
+                            <i class="fas fa-phone text-sm"></i>
+                        {% elif event.type == 'APP_START' %}
+                            <i class="fas fa-bullhorn text-sm"></i>
+                        {% elif event.type == 'ANSWER' %}
+                            <i class="fas fa-check-circle text-sm"></i>
+                        {% elif event.type == 'BRIDGE_START' or event.type == 'BRIDGE_ENTER' %}
+                            <i class="fas fa-link text-sm"></i>
+                        {% elif event.type == 'BRIDGE_END' or event.type == 'BRIDGE_EXIT' %}
+                            <i class="fas fa-unlink text-sm"></i>
+                        {% elif event.type == 'HANGUP' %}
+                            <i class="fas fa-phone-slash text-sm"></i>
+                        {% elif event.type == 'CHAN_END' %}
+                            <i class="fas fa-stop-circle text-sm"></i>
+                        {% else %}
+                            <i class="fas fa-circle-dot text-sm"></i>
+                        {% endif %}
+                    </div>
+                    <div class="text-[10px] font-semibold mt-1
+                        {% if event.type == 'CHAN_START' %}text-blue-600
+                        {% elif event.type == 'APP_START' %}text-yellow-600
+                        {% elif event.type == 'ANSWER' %}text-green-600
+                        {% elif event.type == 'BRIDGE_START' or event.type == 'BRIDGE_ENTER' %}text-purple-600
+                        {% elif event.type == 'BRIDGE_END' or event.type == 'BRIDGE_EXIT' %}text-orange-600
+                        {% elif event.type == 'HANGUP' %}text-red-600
+                        {% elif event.type == 'CHAN_END' %}text-gray-600
+                        {% else %}text-indigo-600{% endif %}">
+                        {{ event.time }}
+                    </div>
+                    <div class="text-[9px] text-black font-medium truncate" title="{{ event.type }}">{{ event.type }}</div>
+                    <div class="text-[9.5px] text-black truncate" title="{{ event.caller }}">{{ event.caller|truncatechars:10 }}</div>
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Summary Cards -->
+    <div class="mb-4 grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));">
+        {% for stat in event_stats %}
+        <div class="bg-white border border-gray-200 border-t-2 rounded-md px-2.5 py-1.5 text-center hover:shadow-sm hover:border-gray-300 transition-shadow
+            {% if 'CHAN_START' in stat.eventtype %}border-t-blue-400
+            {% elif 'APP_START' in stat.eventtype %}border-t-yellow-400
+            {% elif 'ANSWER' in stat.eventtype %}border-t-green-400
+            {% elif 'BRIDGE' in stat.eventtype %}border-t-purple-400
+            {% elif 'HANGUP' in stat.eventtype %}border-t-red-400
+            {% elif 'CHAN_END' in stat.eventtype %}border-t-gray-400
+            {% else %}border-t-indigo-400{% endif %}">
+            <div class="text-sm font-bold
+                {% if 'CHAN_START' in stat.eventtype %}text-blue-700
+                {% elif 'APP_START' in stat.eventtype %}text-yellow-700
+                {% elif 'ANSWER' in stat.eventtype %}text-green-700
+                {% elif 'BRIDGE' in stat.eventtype %}text-purple-700
+                {% elif 'HANGUP' in stat.eventtype %}text-red-700
+                {% elif 'CHAN_END' in stat.eventtype %}text-gray-700
+                {% else %}text-indigo-700{% endif %}">
+                {{ stat.count }}
+            </div>
+            <div class="text-[9.5px] font-medium text-gray-500 uppercase tracking-tight truncate" title="{{ stat.eventtype }}">{{ stat.eventtype }}</div>
+        </div>
+        {% empty %}
+        <div class="w-full text-center text-gray-500 text-xs py-4">No events found</div>
+        {% endfor %}
+    </div>
+
+    <!-- Main Table -->
+    <div class="mb-1.5 flex items-center gap-1.5 text-[10.5px] text-gray-500">
+        <i class="fas fa-arrows-left-right text-gray-400"></i>
+        Scroll horizontally to see all columns
+    </div>
+    <div class="bg-white shadow rounded-md border border-gray-200 overflow-hidden">
+        <div class="relative">
+        <div id="celTableScroll" class="overflow-x-auto">
+            <table class="w-full text-[11.5px] text-left text-gray-600">
+
+                <thead class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10">
+                    <tr>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Time</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Event Type</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Channel</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Unique ID</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Linked ID</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Caller ID</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Destination</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Application</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">App Data</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Context</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Account</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap">Extra Info</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap text-center">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-gray-100">
+                    {% for event in page_obj %}
+                    <tr class="transition-colors
+                        {% if event.eventtype == 'CHAN_START' %}hover:bg-blue-50
+                        {% elif event.eventtype == 'APP_START' %}hover:bg-yellow-50
+                        {% elif event.eventtype == 'ANSWER' %}hover:bg-green-50
+                        {% elif event.eventtype|slice:":6" == 'BRIDGE' %}hover:bg-purple-50
+                        {% elif event.eventtype == 'HANGUP' %}hover:bg-red-50
+                        {% else %}hover:bg-gray-50{% endif %}">
+
+                        <td class="px-3 py-2 font-mono whitespace-nowrap text-gray-700">{{ event.eventtime|date:DATETIME_FORMAT }}</td>
+
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <span class="px-2 py-0.5 text-[10.5px] rounded font-semibold
+                                {% if event.eventtype == 'CHAN_START' %}bg-blue-100 text-blue-700
+                                {% elif event.eventtype == 'APP_START' %}bg-yellow-100 text-yellow-700
+                                {% elif event.eventtype == 'ANSWER' %}bg-green-100 text-green-700
+                                {% elif event.eventtype == 'BRIDGE_START' %}bg-purple-100 text-purple-700
+                                {% elif event.eventtype == 'BRIDGE_END' %}bg-orange-100 text-orange-700
+                                {% elif event.eventtype == 'HANGUP' %}bg-red-100 text-red-700
+                                {% elif event.eventtype == 'CHAN_END' %}bg-gray-100 text-gray-700
+                                {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                                {% if event.eventtype == 'CHAN_START' %}
+                                    <i class="fas fa-phone mr-1"></i>
+                                {% elif event.eventtype == 'APP_START' %}
+                                    <i class="fas fa-bullhorn mr-1"></i>
+                                {% elif event.eventtype == 'ANSWER' %}
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                {% elif event.eventtype == 'BRIDGE_START' %}
+                                    <i class="fas fa-link mr-1"></i>
+                                {% elif event.eventtype == 'BRIDGE_END' %}
+                                    <i class="fas fa-unlink mr-1"></i>
+                                {% elif event.eventtype == 'HANGUP' %}
+                                    <i class="fas fa-phone-slash mr-1"></i>
+                                {% elif event.eventtype == 'CHAN_END' %}
+                                    <i class="fas fa-stop-circle mr-1"></i>
+                                {% else %}
+                                    <i class="fas fa-circle-dot mr-1"></i>
+                                {% endif %}
+                                {{ event.eventtype }}
+                            </span>
+                        </td>
+
+                        <td class="px-3 py-2 max-w-[150px] truncate text-gray-600" title="{{ event.channame }}">
+                            {{ event.channame|default:"-" }}
+                        </td>
+
+                        <td class="px-3 py-2 font-mono text-[10.5px]">
+                            <a href="?uniqueid={{ event.uniqueid }}" class="text-indigo-600 hover:underline" title="View timeline">
+                                {{ event.uniqueid|truncatechars:12 }}
+                            </a>
+                        </td>
+
+                        <td class="px-3 py-2 font-mono text-[10.5px]">
+                            {% if event.linkedid and event.linkedid != event.uniqueid %}
+                            <a href="?uniqueid={{ event.linkedid }}" class="text-purple-600 hover:underline" title="View linked calls">
+                                {{ event.linkedid|truncatechars:12 }}
+                            </a>
+                            {% else %}-{% endif %}
+                        </td>
+
+                        <td class="px-3 py-2 max-w-[160px] truncate" title="{{ event.cid_name }} {{ event.caller_ext }}">
+                            {% if event.caller_name %}
+                                <span class="font-semibold text-gray-800">{{ event.caller_name }}</span> <span class="text-gray-500">({{ event.caller_ext }})</span>
+                            {% elif event.cid_name or event.cid_num %}
+                                {% if event.cid_name %}"{{ event.cid_name }}"{% endif %}
+                                {% if event.cid_num %}{{ event.cid_num }}{% endif %}
+                            {% else %}-{% endif %}
+                        </td>
+
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            {% if event.exten_name %}
+                                <span class="font-semibold text-gray-800">{{ event.exten_name }}</span> <span class="text-gray-500">({{ event.exten_ext }})</span>
+                            {% else %}{{ event.exten_ext }}{% endif %}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ event.appname|default:"-" }}</td>
+
+                        <td class="px-3 py-2 max-w-[100px] truncate" title="{{ event.appdata }}">
+                            {{ event.appdata|default:"-"|truncatechars:15 }}
+                        </td>
+
+                        <td class="px-3 py-2 whitespace-nowrap">{{ event.context|default:"-" }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap">{{ event.accountcode|default:"-" }}</td>
+
+                        <td class="px-3 py-2 max-w-[120px] truncate" title="{{ event.extra|default:event.userfield|default:'' }}">
+                            {% if event.extra %}{{ event.extra|truncatechars:20 }}
+                            {% elif event.userfield %}{{ event.userfield|truncatechars:20 }}
+                            {% else %}-{% endif %}
+                        </td>
+
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <div class="flex gap-2">
+                                <a href="?uniqueid={{ event.uniqueid }}"
+                                   class="text-indigo-500 hover:text-indigo-700 transition-colors"
+                                   title="View timeline">
+                                    <i class="fas fa-clock-rotate-left text-xs"></i>
+                                </a>
+                                {% if event.linkedid and event.linkedid != event.uniqueid %}
+                                <a href="?uniqueid={{ event.linkedid }}"
+                                   class="text-purple-500 hover:text-purple-700 transition-colors"
+                                   title="View linked calls">
+                                    <i class="fas fa-link text-xs"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="13" class="px-3 py-12 text-center text-gray-400">
+                            <i class="fas fa-inbox text-3xl mb-2 opacity-30 block"></i>
+                            <p class="text-sm">No events found</p>
+                            <p class="text-xs mt-1">
+                                Try adjusting your filters or
+                                <a href="{% url 'admin_cel' %}" class="text-indigo-600 hover:underline">clear all filters</a>
+                            </p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Right-edge fade hint: shows there are more columns to scroll to, auto-hides at scroll end -->
+        <div id="celScrollFade" class="pointer-events-none absolute top-0 right-0 h-full w-10 bg-gradient-to-l from-white via-white/80 to-transparent transition-opacity duration-200"></div>
+        </div>
+
+        <!-- Table Footer: Count + Pagination -->
+        <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+
+                <!-- Count Info -->
+                <p class="text-xs text-gray-500">
+                    Showing
+                    <span class="font-semibold text-gray-700">{{ page_obj.start_index }}–{{ page_obj.end_index }}</span>
+                    of
+                    <span class="font-semibold text-indigo-600">{{ page_obj.paginator.count }}</span>
+                    events
+                </p>
+
+                <!-- Pagination -->
+                {% if page_obj.has_other_pages %}
+                <nav class="flex items-center gap-1 text-xs">
+
+                    {% if page_obj.has_previous %}
+                    <a href="?page=1{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-angles-left"></i>
+                    </a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                    {% else %}
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angles-left"></i></span>
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angle-left"></i></span>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="px-2.5 py-1 rounded border border-indigo-400 bg-indigo-500 text-white font-semibold">{{ num }}</span>
+                        {% elif num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+                            <a href="?page={{ num }}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                               class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">{{ num }}</a>
+                        {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                            {% if num == 1 and page_obj.number > 5 %}
+                                <a href="?page={{ num }}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">{{ num }}</a>
+                                <span class="px-1 text-gray-400">…</span>
+                            {% elif num == page_obj.paginator.num_pages and page_obj.number < page_obj.paginator.num_pages|add:"-4" %}
+                                <span class="px-1 text-gray-400">…</span>
+                                <a href="?page={{ num }}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">{{ num }}</a>
+                            {% else %}
+                                <a href="?page={{ num }}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">{{ num }}</a>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if selected_event_type %}&event_type={{ selected_event_type }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}{% if selected_uniqueid %}&uniqueid={{ selected_uniqueid }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-angles-right"></i>
+                    </a>
+                    {% else %}
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angle-right"></i></span>
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angles-right"></i></span>
+                    {% endif %}
+
+                </nav>
+                {% endif %}
+
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-4 flex flex-wrap gap-3 text-[10.5px] text-gray-500 bg-gray-50 p-3 rounded-md">
+        <div class="flex items-center gap-1"><i class="fas fa-phone text-blue-500"></i> Channel Start</div>
+        <div class="flex items-center gap-1"><i class="fas fa-bullhorn text-yellow-500"></i> Application</div>
+        <div class="flex items-center gap-1"><i class="fas fa-check-circle text-green-500"></i> Answer</div>
+        <div class="flex items-center gap-1"><i class="fas fa-link text-purple-500"></i> Bridge Start</div>
+        <div class="flex items-center gap-1"><i class="fas fa-unlink text-orange-500"></i> Bridge End</div>
+        <div class="flex items-center gap-1"><i class="fas fa-phone-slash text-red-500"></i> Hangup</div>
+        <div class="flex items-center gap-1"><i class="fas fa-stop-circle text-gray-500"></i> Channel End</div>
+        <div class="flex items-center gap-1 ml-auto">
+            <i class="fas fa-clock-rotate-left text-indigo-500"></i> Click UniqueID for complete timeline
+        </div>
+        <div class="flex items-center gap-1">
+            <i class="fas fa-link text-purple-500"></i> Linked calls
+        </div>
+    </div>
+
+<!-- Auto-hide the right-edge scroll fade once the table is scrolled to its end -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const scrollEl = document.getElementById('celTableScroll');
+        const fadeEl = document.getElementById('celScrollFade');
+        if (!scrollEl || !fadeEl) return;
+
+        function updateFade() {
+            const atEnd = scrollEl.scrollLeft + scrollEl.clientWidth >= scrollEl.scrollWidth - 2;
+            const noOverflow = scrollEl.scrollWidth <= scrollEl.clientWidth;
+            fadeEl.style.opacity = (atEnd || noOverflow) ? '0' : '1';
+        }
+
+        scrollEl.addEventListener('scroll', updateFade);
+        window.addEventListener('resize', updateFade);
+        updateFade();
+    });
+</script>
+
+{% endblock %}

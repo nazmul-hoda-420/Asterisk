@@ -1,0 +1,166 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}Blacklist/DND{% endblock %}
+
+{% block settings_content %}
+<section id="settings-blacklist" class="settings-tab">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-slate-900">Blacklist / DND</h2>
+            <p class="text-[11px] text-slate-500">Numbers that will never be called or routed to agents</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <!-- Search box -->
+            <div class="relative w-full sm:w-56">
+                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+                <input type="text" id="blacklistSearchInput"
+                    placeholder="Search numbers..."
+                    class="w-full pl-8 pr-3 py-1.5 text-[11px] border border-slate-200 rounded-full bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 focus:border-indigo-400 placeholder:text-slate-400">
+            </div>
+
+            <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-ban text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ entries|length }}</span> Blocked
+                </span>
+            </div>
+
+            <button id="toggleBlacklistFormBtn"
+                    class="w-[110px] justify-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+                <i id="toggleBlacklistIcon" class="fa-solid fa-plus text-[10px]"></i>
+                <span id="toggleBlacklistText">Add Number</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toggleable form container -->
+    <div id="blacklistFormContainer"
+         class="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-in-out overflow-hidden">
+        <div class="min-h-0 overflow-hidden">
+            <form method="post" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add">
+                <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fa-solid fa-ban text-[10px]"></i> Add Number
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="blacklist_number" class="block text-[11px] font-semibold text-slate-600 mb-1">Phone Number</label>
+                        <input type="text" id="blacklist_number" name="number" required
+                               class="block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-sm placeholder:text-xs"
+                               placeholder="+8801XXXXXXXXX">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="blacklist_reason" class="block text-[11px] font-semibold text-slate-600 mb-1">Reason</label>
+                        <input type="text" id="blacklist_reason" name="reason"
+                               class="block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-sm placeholder:text-xs"
+                               placeholder="e.g. Requested Do-Not-Call, Spam complaint">
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Add to Blacklist</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Blacklist table -->
+    <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-100 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">SL</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Number</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Reason</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Created At</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="blacklistTableBody" class="divide-y divide-slate-200 text-[12px]">
+                    {% for entry in entries %}
+                    <tr class="blacklist-row bg-white" data-search="{{ entry.number }} {{ entry.reason|lower }}">
+                        <td class="px-4 py-1.5 text-slate-400">{{ forloop.counter }}</td>
+                        <td class="px-4 py-1.5 font-mono font-medium text-slate-800">{{ entry.number }}</td>
+                        <td class="px-4 py-1.5 text-slate-500">{{ entry.reason|default:"—" }}</td>
+                        <td class="px-4 py-1.5 text-slate-500 text-[10px] whitespace-nowrap">{{ entry.created_at|date:DATETIME_FORMAT }}</td>
+                        <td class="px-4 py-1.5 text-right">
+                            <form method="post" onsubmit="return confirm('Remove this number from the blacklist?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="{{ entry.id }}">
+                                <button type="submit" class="delete-blacklist-btn text-slate-400 hover:text-red-500 px-1" title="Remove">
+                                    <i class="fa-solid fa-trash text-[11px]"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr id="noBlacklistResults" class="{% if entries %}hidden{% endif %}">
+                        <td colspan="5" class="px-4 py-6 text-center">
+                            <p class="text-slate-400 text-[11px]">No matching numbers found</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<script>
+    (function() {
+        const toggleBtn = document.getElementById('toggleBlacklistFormBtn');
+        const formContainer = document.getElementById('blacklistFormContainer');
+        const toggleIcon = document.getElementById('toggleBlacklistIcon');
+        const toggleText = document.getElementById('toggleBlacklistText');
+
+        let isOpen = false;
+
+        toggleBtn.addEventListener('click', function() {
+            isOpen = !isOpen;
+
+            if (isOpen) {
+                formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+                formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+                toggleIcon.classList.remove('fa-plus');
+                toggleIcon.classList.add('fa-times');
+                toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                toggleText.textContent = 'Cancel';
+            } else {
+                formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+                formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+                toggleIcon.classList.remove('fa-times');
+                toggleIcon.classList.add('fa-plus');
+                toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                toggleText.textContent = 'Add Number';
+            }
+        });
+    })();
+
+    (function() {
+        const searchInput = document.getElementById('blacklistSearchInput');
+        const rows = document.querySelectorAll('.blacklist-row');
+        const noResultsRow = document.getElementById('noBlacklistResults');
+
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            let visibleCount = 0;
+
+            rows.forEach(function(row) {
+                const match = row.dataset.search.toLowerCase().includes(query);
+                row.classList.toggle('hidden', !match);
+                if (match) visibleCount++;
+            });
+
+            if (noResultsRow) {
+                noResultsRow.classList.toggle('hidden', visibleCount !== 0);
+            }
+        });
+    })();
+</script>
+{% endblock %}

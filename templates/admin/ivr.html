@@ -1,0 +1,440 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}IVR{% endblock %}
+
+{% block settings_content %}
+<section id="settings-ivr" class="settings-tab">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-800">IVR Menus</h2>
+            <p class="text-[11px] text-gray-500 mt-0.5">Interactive voice response flows for inbound calls</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fas fa-sitemap text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ menus|length }}</span> Menus
+                </span>
+            </div>
+
+            <button type="button" id="toggleIvrFormBtn"
+                    class="w-[130px] justify-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+                <i id="toggleIvrIcon" class="fas fa-plus text-[10px]"></i>
+                <span id="toggleIvrText">New IVR Menu</span>
+            </button>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4 space-y-1.5">
+        {% for message in messages %}
+        <div class="text-[11px] px-3 py-2 rounded-md {% if message.tags == 'error' %}bg-red-50 text-red-600{% else %}bg-emerald-50 text-emerald-600{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Toggleable Create/Edit form -->
+    <div id="ivrFormContainer" class="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-in-out overflow-hidden">
+        <div class="min-h-0 overflow-hidden">
+            <form method="post" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="id" id="ivrFormId" value="">
+                <h3 id="ivrFormTitle" class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fas fa-sitemap text-[10px]"></i> New IVR Menu
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Menu Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-signature text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.name }}
+                        </div>
+                        {% if form.name.errors %}<p class="text-red-500 text-[10px] mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Description</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-align-left text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.description }}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ form.greeting_sound.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Greeting Sound</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-volume-high text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.greeting_sound }}
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ form.invalid_sound.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Invalid/Retry Sound</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-triangle-exclamation text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.invalid_sound }}
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ form.timeout.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Timeout (sec)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-clock text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.timeout }}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ form.max_retries.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Retries</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-rotate-right text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.max_retries }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-3 items-start">
+                    <div class="flex-1 w-full">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[11px] font-semibold text-slate-600">Key Mapping</p>
+                            <button type="button" id="addIvrOptionBtn" class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800">
+                                <i class="fa-solid fa-plus text-[9px]"></i> Add Key
+                            </button>
+                        </div>
+
+                        {{ formset.management_form }}
+                        <div id="ivrOptionsList" class="space-y-1.5">
+                            {% for opt_form in formset %}
+                            <div class="flex items-center gap-2 ivr-option-row">
+                                {{ opt_form.id }}
+                                <span class="text-[10px] text-gray-400 font-medium shrink-0">Key</span>
+                                {{ opt_form.digit }}
+                                <i class="fa-solid fa-arrow-right-long text-gray-300 text-[11px] shrink-0"></i>
+                                {{ opt_form.destination_type }}
+                                <select data-ivr-dest="extension" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                                    <option value="">Select extension&hellip;</option>
+                                    {% for ext in extensions %}
+                                    <option value="{{ ext.id }}">{{ ext.id }}{% if ext.assigned_user.full_name %} — {{ ext.assigned_user.full_name }}{% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                <select data-ivr-dest="queue" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                                    <option value="">Select group&hellip;</option>
+                                    {% for q in queues %}
+                                    <option value="{{ q.name }}">{{ q.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select data-ivr-dest="ivr" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                                    <option value="">Select IVR&hellip;</option>
+                                    {% for iv in ivrs %}
+                                    <option value="{{ iv.name }}">{{ iv.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                {{ opt_form.destination_id }}
+                                <span class="hidden">{{ opt_form.DELETE }}</span>
+                                <button type="button" class="remove-ivr-option-btn shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                    <i class="fa-solid fa-xmark text-[11px]"></i>
+                                </button>
+                            </div>
+                            {% if opt_form.non_field_errors %}<p class="text-red-500 text-[10px] ml-10">{{ opt_form.non_field_errors.0 }}</p>{% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <div class="flex justify-end mt-4">
+                            <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Save IVR Menu</button>
+                        </div>
+                    </div>
+
+                    <div class="w-full lg:w-80 shrink-0 bg-emerald-100 border border-emerald-200 rounded-md p-3">
+                        <p class="text-[11px] font-bold text-black uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-info text-[10px]"></i> Notes
+                        </p>
+                        <ul class="space-y-1.5 text-[11px] text-black list-disc list-inside">
+                            <li>Press a key, and the caller is routed to that Extension, Group, or another IVR (a sub-menu).</li>
+                            <li>No input or an unmapped key re-plays the Invalid/Retry Sound, up to Retries times, then hangs up.</li>
+                            <li>Without an Invalid/Retry Sound, the Greeting Sound re-plays instead.</li>
+                            <li>An IVR can route to another IVR, but not to itself.</li>
+                            <li>"Add Key" adds as many key mappings as this menu needs — there's no fixed limit.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <template id="ivrOptionRowTemplate">
+                    <div class="flex items-center gap-2 ivr-option-row">
+                        {{ formset.empty_form.id }}
+                        <span class="text-[10px] text-gray-400 font-medium shrink-0">Key</span>
+                        {{ formset.empty_form.digit }}
+                        <i class="fa-solid fa-arrow-right-long text-gray-300 text-[11px] shrink-0"></i>
+                        {{ formset.empty_form.destination_type }}
+                        <select data-ivr-dest="extension" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                            <option value="">Select extension&hellip;</option>
+                            {% for ext in extensions %}
+                            <option value="{{ ext.id }}">{{ ext.id }}{% if ext.assigned_user.full_name %} — {{ ext.assigned_user.full_name }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <select data-ivr-dest="queue" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                            <option value="">Select group&hellip;</option>
+                            {% for q in queues %}
+                            <option value="{{ q.name }}">{{ q.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <select data-ivr-dest="ivr" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                            <option value="">Select IVR&hellip;</option>
+                            {% for iv in ivrs %}
+                            <option value="{{ iv.name }}">{{ iv.name }}</option>
+                            {% endfor %}
+                        </select>
+                        {{ formset.empty_form.destination_id }}
+                        <span class="hidden">{{ formset.empty_form.DELETE }}</span>
+                        <button type="button" class="remove-ivr-option-btn shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                            <i class="fa-solid fa-xmark text-[11px]"></i>
+                        </button>
+                    </div>
+                </template>
+            </form>
+        </div>
+    </div>
+
+    <!-- IVR Menus -->
+    <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-100 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Menu Name</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Greeting</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Keys</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Linked DIDs</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Status</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-[12px]">
+                    {% for menu in menus %}
+                    <tr class="bg-white">
+                        <td class="px-4 py-2.5 font-semibold text-slate-800">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-semibold shrink-0">
+                                    <i class="fas fa-sitemap"></i>
+                                </div>
+                                {{ menu.name }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-2.5 text-slate-500">{{ menu.greeting_sound.name|default:"—" }}</td>
+                        <td class="px-4 py-2.5">
+                            {% for key in menu.keys %}
+                            <span class="inline-flex items-center gap-1 mr-1.5" title="{{ key.label }}">
+                                <span class="w-4 h-4 rounded bg-gray-100 text-gray-600 text-[9px] font-semibold flex items-center justify-center">{{ key.digit }}</span>
+                            </span>
+                            {% empty %}
+                            <span class="text-gray-300">—</span>
+                            {% endfor %}
+                        </td>
+                        <td class="px-4 py-2.5 text-slate-500 font-mono text-[11px]">{{ menu.dids|join:", "|default:"—" }}</td>
+                        <td class="px-4 py-2.5">
+                            {% if menu.is_active %}
+                            <span class="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-medium">Active</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-medium">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2.5 text-right">
+                            {{ menu.edit_payload|json_script:menu.dom_id }}
+                            <button type="button" class="edit-ivr-btn inline-flex items-center justify-center w-6 h-6 text-slate-400 hover:text-indigo-600" data-ivr-id="{{ menu.id }}">
+                                <i class="fa-solid fa-pen text-[11px]"></i>
+                            </button>
+                            <form method="post" class="inline" onsubmit="return confirm('Delete IVR menu \'{{ menu.name }}\'?');">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="{{ menu.id }}">
+                                <button type="submit" class="inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash text-[11px]"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-6 text-center">
+                            <div class="flex flex-col items-center gap-1.5">
+                                <i class="fas fa-sitemap text-slate-300 text-xl"></i>
+                                <p class="text-slate-500 text-[11px] font-medium">No IVR menus yet</p>
+                                <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">New IVR Menu</span> above</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</section>
+
+<script>
+    (function() {
+        const btn = document.getElementById('toggleIvrFormBtn');
+        const container = document.getElementById('ivrFormContainer');
+        const icon = document.getElementById('toggleIvrIcon');
+        const text = document.getElementById('toggleIvrText');
+        const formTitle = document.getElementById('ivrFormTitle');
+        const formIdInput = document.getElementById('ivrFormId');
+        const nameInput = document.querySelector('#ivrFormContainer input[name="name"]');
+        const descInput = document.querySelector('#ivrFormContainer input[name="description"]');
+        const greetingSelect = document.querySelector('#ivrFormContainer select[name="greeting_sound"]');
+        const invalidSelect = document.querySelector('#ivrFormContainer select[name="invalid_sound"]');
+        const timeoutInput = document.querySelector('#ivrFormContainer input[name="timeout"]');
+        const retriesInput = document.querySelector('#ivrFormContainer input[name="max_retries"]');
+        const optionsList = document.getElementById('ivrOptionsList');
+        const rowTemplate = document.getElementById('ivrOptionRowTemplate').innerHTML;
+        const totalFormsInput = document.getElementById('id_options-TOTAL_FORMS');
+        const initialFormsInput = document.getElementById('id_options-INITIAL_FORMS');
+        const addOptionBtn = document.getElementById('addIvrOptionBtn');
+
+        // Snapshot of how the form was server-rendered, so "New IVR Menu" can restore it exactly.
+        const pristineOptionsHtml = optionsList.innerHTML;
+        const pristineTotalForms = totalFormsInput.value;
+        const pristineInitialForms = initialFormsInput.value;
+
+        let open = false;
+
+        function initRow(row) {
+            const typeSelect = row.querySelector('.ivr-opt-type');
+            const destSelects = row.querySelectorAll('[data-ivr-dest]');
+            const hiddenDest = row.querySelector('.ivr-opt-dest-id');
+
+            function sync() {
+                destSelects.forEach(function(sel) {
+                    if (sel.dataset.ivrDest === typeSelect.value) {
+                        sel.classList.remove('hidden');
+                        hiddenDest.value = sel.value;
+                    } else {
+                        sel.classList.add('hidden');
+                    }
+                });
+                if (!typeSelect.value) { hiddenDest.value = ''; }
+            }
+
+            typeSelect.addEventListener('change', sync);
+            destSelects.forEach(function(sel) {
+                sel.addEventListener('change', function() { hiddenDest.value = sel.value; });
+            });
+            sync();
+
+            row.querySelector('.remove-ivr-option-btn').addEventListener('click', function() {
+                const idInput = row.querySelector('input[name$="-id"]');
+                const deleteInput = row.querySelector('input[name$="-DELETE"]');
+                if (idInput && idInput.value) {
+                    if (deleteInput) { deleteInput.checked = true; }
+                    row.classList.add('hidden');
+                } else {
+                    row.remove();
+                }
+            });
+        }
+
+        function addOptionRow() {
+            const index = parseInt(totalFormsInput.value, 10);
+            const html = rowTemplate.split('__prefix__').join(index);
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = html.trim();
+            const row = wrapper.firstElementChild;
+            optionsList.appendChild(row);
+            totalFormsInput.value = index + 1;
+            initRow(row);
+            return row;
+        }
+
+        function openForm() {
+            open = true;
+            container.classList.remove('grid-rows-[0fr]', 'opacity-0');
+            container.classList.add('grid-rows-[1fr]', 'opacity-100');
+            icon.classList.remove('fa-plus');
+            icon.classList.add('fa-times');
+            btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            btn.classList.add('bg-red-600', 'hover:bg-red-700');
+            text.textContent = 'Cancel';
+        }
+
+        function closeForm() {
+            open = false;
+            container.classList.remove('grid-rows-[1fr]', 'opacity-100');
+            container.classList.add('grid-rows-[0fr]', 'opacity-0');
+            icon.classList.remove('fa-times');
+            icon.classList.add('fa-plus');
+            btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            btn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            text.textContent = 'New IVR Menu';
+        }
+
+        function resetForm() {
+            formTitle.innerHTML = '<i class="fas fa-sitemap text-[10px]"></i> New IVR Menu';
+            formIdInput.value = '';
+            nameInput.value = '';
+            descInput.value = '';
+            greetingSelect.value = '';
+            invalidSelect.value = '';
+            timeoutInput.value = 5;
+            retriesInput.value = 3;
+            optionsList.innerHTML = pristineOptionsHtml;
+            totalFormsInput.value = pristineTotalForms;
+            initialFormsInput.value = pristineInitialForms;
+            Array.from(optionsList.children).forEach(initRow);
+        }
+
+        addOptionBtn.addEventListener('click', addOptionRow);
+
+        btn.addEventListener('click', function() {
+            if (open) { closeForm(); } else { resetForm(); openForm(); }
+        });
+
+        document.querySelectorAll('.edit-ivr-btn').forEach(function(editBtn) {
+            editBtn.addEventListener('click', function() {
+                const payload = JSON.parse(document.getElementById('ivr-data-' + editBtn.dataset.ivrId).textContent);
+                formTitle.innerHTML = '<i class="fas fa-sitemap text-[10px]"></i> Edit IVR Menu';
+                formIdInput.value = payload.id;
+                nameInput.value = payload.name;
+                descInput.value = payload.description;
+                greetingSelect.value = payload.greeting_sound;
+                invalidSelect.value = payload.invalid_sound;
+                timeoutInput.value = payload.timeout;
+                retriesInput.value = payload.max_retries;
+
+                optionsList.innerHTML = '';
+                totalFormsInput.value = 0;
+                initialFormsInput.value = payload.options.length;
+
+                payload.options.forEach(function(opt) {
+                    const row = addOptionRow();
+                    row.querySelector('input[name$="-id"]').value = opt.id;
+                    const digitSelect = row.querySelector('.ivr-opt-digit');
+                    digitSelect.value = opt.digit;
+                    const typeSelect = row.querySelector('.ivr-opt-type');
+                    typeSelect.value = opt.destination_type;
+                    typeSelect.dispatchEvent(new Event('change'));
+                    const destSelect = row.querySelector('[data-ivr-dest="' + opt.destination_type + '"]');
+                    if (destSelect) { destSelect.value = opt.destination_id; }
+                    row.querySelector('.ivr-opt-dest-id').value = opt.destination_id;
+                });
+
+                openForm();
+            });
+        });
+
+        Array.from(optionsList.children).forEach(initRow);
+    })();
+</script>
+{% endblock %}

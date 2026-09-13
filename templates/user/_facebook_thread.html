@@ -1,0 +1,101 @@
+<!-- Right: chat thread -- its own partial so it can be re-rendered via AJAX (see
+     user_conversation_thread_view) when a conversation is selected, instead of a full page
+     navigation that would tear down and reconnect the embedded WebRTC widget. -->
+<div id="fbRightPane" class="flex-1 flex flex-col">
+    {% if facebook_selected %}
+    <div class="bg-[#f0f2f5] px-4 py-2.5 flex items-center justify-between shrink-0 border-b border-gray-200">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="fb-avatar w-9 h-9 text-xs shrink-0">{{ facebook_selected.contact_name|default:facebook_selected.psid|first|upper }}</div>
+            <div class="min-w-0">
+                <p class="text-[13px] font-semibold text-gray-900 truncate">{{ facebook_selected.contact_name|default:facebook_selected.psid }}</p>
+                <p class="text-[10.5px] text-gray-500">{{ facebook_selected.psid }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="fbThreadPane" class="flex-1 overflow-y-auto px-6 md:px-12 py-4 space-y-1.5 bg-white fb-scrollbar">
+        {% for m in facebook_thread %}
+        <div class="flex {% if m.direction == 'out' %}justify-end{% else %}justify-start{% endif %}" data-msg-id="{{ m.id }}">
+            <div class="fb-bubble {% if m.direction == 'out' %}fb-bubble-out{% else %}fb-bubble-in{% endif %} max-w-[65%] px-3.5 py-2">
+                {% if m.media_path %}
+                    {% if m.media_type == 'image' %}
+                    <a href="{% url 'user_facebook_media' m.id %}" target="_blank"><img src="{% url 'user_facebook_media' m.id %}" class="rounded-md max-w-[260px] max-h-[300px] mb-1"></a>
+                    {% elif m.media_type == 'video' %}
+                    <video src="{% url 'user_facebook_media' m.id %}" controls class="rounded-md max-w-[260px] max-h-[300px] mb-1"></video>
+                    {% elif m.media_type == 'audio' %}
+                    <audio src="{% url 'user_facebook_media' m.id %}" controls class="mb-1" style="max-width:260px;"></audio>
+                    {% else %}
+                    <a href="{% url 'user_facebook_media' m.id %}" target="_blank" class="flex items-center gap-2 bg-black/5 rounded-md px-2.5 py-2 mb-1 hover:bg-black/10 transition">
+                        <i class="fa-solid fa-file-lines text-gray-500 text-lg"></i>
+                        <span class="text-[12px] text-gray-800 truncate max-w-[180px]">{{ m.media_filename|default:"File" }}</span>
+                        <i class="fa-solid fa-download text-gray-400 text-xs ml-auto"></i>
+                    </a>
+                    {% endif %}
+                {% endif %}
+                {% if m.body %}
+                <p class="text-[13.5px] leading-snug whitespace-pre-wrap break-words">{{ m.body }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex {% if m.direction == 'out' %}justify-end{% else %}justify-start{% endif %}">
+            <p class="text-[10px] text-gray-400 px-1">
+                {{ m.created_at|date:"g:i A" }}
+                {% if m.direction == 'out' %}
+                    {% if m.status == 'pending' %}<i class="fa-regular fa-clock"></i>
+                    {% elif m.status == 'sent' %}<i class="fa-solid fa-check"></i>
+                    {% elif m.status == 'delivered' %}<i class="fa-solid fa-check-double text-gray-400"></i>
+                    {% elif m.status == 'read' %}<i class="fa-solid fa-check-double" style="color:#006AFF;"></i>
+                    {% elif m.status == 'failed' %}<i class="fa-solid fa-triangle-exclamation text-red-400"></i>
+                    {% endif %}
+                {% endif %}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="bg-[#f0f2f5] px-4 py-2.5 shrink-0">
+        {% if not facebook_selected.last_customer_message_at %}
+        <p class="text-[10px] text-amber-600 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> No message received from this customer yet — a free-text reply may not deliver until they message first.</p>
+        {% endif %}
+        <div id="fbAttachPreview" class="hidden items-center gap-2 bg-white rounded-lg px-3 py-2 mb-2 text-[12px] text-gray-700">
+            <i class="fa-solid fa-paperclip text-gray-400"></i>
+            <span id="fbAttachName" class="truncate flex-1"></span>
+            <button type="button" onclick="FB_CHAT.clearAttachment()" class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form method="post" id="fbMsgForm" class="flex items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="send">
+            <input type="hidden" name="psid" value="{{ facebook_selected.psid }}">
+            <input type="file" id="fbFileInput" name="file" class="hidden" onchange="FB_CHAT.onFileChosen(this)">
+            <button type="button" id="fbAttachBtn" onclick="document.getElementById('fbFileInput').click()" class="w-9 h-9 rounded-full hover:bg-gray-200 text-gray-500 flex items-center justify-center shrink-0 transition">
+                <i class="fa-solid fa-paperclip text-[15px]"></i>
+            </button>
+            <div id="fbInputWrap" class="flex-1 bg-white rounded-lg px-3 py-2 flex items-center">
+                <input id="fbMsgBody" type="text" name="body" placeholder="Type a message" autocomplete="off" class="flex-1 text-[13px] text-gray-800 placeholder-gray-400 focus:outline-none">
+            </div>
+            <div id="fbRecordBar" class="hidden flex-1 bg-white rounded-lg px-3 py-2 items-center gap-3">
+                <button type="button" onclick="FB_CHAT.cancelRecording()" class="text-red-500 hover:text-red-600 shrink-0" title="Cancel">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0"></span>
+                <span id="fbRecordTimer" class="text-[13px] text-gray-600" style="font-variant-numeric: tabular-nums;">0:00</span>
+                <span class="text-[11px] text-gray-400 ml-auto">Recording voice message…</span>
+            </div>
+            <button type="button" id="fbMicBtn" onclick="FB_CHAT.startRecording()" class="w-9 h-9 rounded-full hover:bg-gray-200 text-gray-500 flex items-center justify-center shrink-0 transition">
+                <i class="fa-solid fa-microphone text-[15px]"></i>
+            </button>
+            <button type="submit" id="fbSendBtn" class="w-10 h-10 rounded-full bg-[#006AFF] hover:bg-[#0058d1] text-white flex items-center justify-center shrink-0 transition">
+                <i class="fa-solid fa-paper-plane text-[14px]"></i>
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="flex-1 flex flex-col items-center justify-center bg-white text-center px-6">
+        <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center mb-4">
+            <i class="fa-brands fa-facebook-messenger text-4xl text-[#006AFF]"></i>
+        </div>
+        <p class="text-sm text-gray-600 font-medium">Facebook Messenger</p>
+        <p class="text-[11px] text-gray-500 mt-1">Select a conversation to view messages</p>
+    </div>
+    {% endif %}
+</div>

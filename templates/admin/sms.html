@@ -1,0 +1,128 @@
+{% extends 'admin/base.html' %}
+{% block title %}SMS{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">SMS</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Send and track SMS messages</p>
+    </div>
+    <button id="toggleSmsFormBtn" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3.5 py-2 rounded-md transition">
+        <i id="toggleSmsIcon" class="fa-solid fa-paper-plane text-[10px]"></i>
+        <span id="toggleSmsText">Send SMS</span>
+    </button>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <p class="text-[11px] text-gray-500">Sent Today</p>
+        <p class="text-xl font-bold text-gray-800 mt-1">1,284</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <p class="text-[11px] text-gray-500">Delivered</p>
+        <p class="text-xl font-bold text-green-600 mt-1">1,192</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <p class="text-[11px] text-gray-500">Failed</p>
+        <p class="text-xl font-bold text-red-500 mt-1">42</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <p class="text-[11px] text-gray-500">Pending</p>
+        <p class="text-xl font-bold text-yellow-600 mt-1">50</p>
+    </div>
+</div>
+
+<div id="smsFormContainer" class="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-in-out mb-4">
+    <div class="overflow-hidden">
+        <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+            <p class="text-xs font-semibold text-gray-800 mb-3">Send New SMS</p>
+            <form class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="text-[11px] text-gray-500 mb-1 block">Recipient(s)</label>
+                    <input type="text" placeholder="+8801XXXXXXXXX or select a group" class="w-full border border-gray-200 rounded-md text-xs px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="text-[11px] text-gray-500 mb-1 block">Template (optional)</label>
+                    <select class="w-full border border-gray-200 rounded-md text-xs px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <option>None — custom message</option>
+                        <option>Payment Reminder</option>
+                        <option>Appointment Confirmation</option>
+                        <option>OTP Verification</option>
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-[11px] text-gray-500 mb-1 block">Message</label>
+                    <textarea rows="3" placeholder="Type your message..." class="w-full border border-gray-200 rounded-md text-xs px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
+                    <p class="text-[10px] text-gray-400 mt-1">0/160 characters &middot; 1 SMS segment</p>
+                </div>
+                <div class="md:col-span-2 flex justify-end">
+                    <button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-4 py-2 rounded-md transition">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-md shadow-sm border border-gray-100 overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <p class="text-xs font-semibold text-gray-800">Message Log</p>
+        <input type="text" placeholder="Search number..." class="border border-gray-200 rounded-md text-xs px-3 py-1.5 w-48 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+    </div>
+    <table class="w-full text-xs">
+        <thead>
+            <tr class="bg-gray-50 text-gray-500 text-left">
+                <th class="font-medium px-4 py-2">Recipient</th>
+                <th class="font-medium px-4 py-2">Message</th>
+                <th class="font-medium px-4 py-2">Status</th>
+                <th class="font-medium px-4 py-2">Sent At</th>
+            </tr>
+        </thead>
+        <tbody class="text-gray-700 divide-y divide-gray-50">
+            <tr>
+                <td class="px-4 py-2.5">+8801755009988</td>
+                <td class="px-4 py-2.5 max-w-xs truncate">Your EMI payment of BDT 4,500 is due on 15 Aug.</td>
+                <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-medium">Delivered</span></td>
+                <td class="px-4 py-2.5 text-gray-500">13 Aug 2026, 10:12 AM</td>
+            </tr>
+            <tr>
+                <td class="px-4 py-2.5">+8801812345678</td>
+                <td class="px-4 py-2.5 max-w-xs truncate">Your OTP is 483920. Valid for 5 minutes.</td>
+                <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-medium">Delivered</span></td>
+                <td class="px-4 py-2.5 text-gray-500">13 Aug 2026, 09:58 AM</td>
+            </tr>
+            <tr>
+                <td class="px-4 py-2.5">+8801911223344</td>
+                <td class="px-4 py-2.5 max-w-xs truncate">Appointment confirmed for 14 Aug, 3:00 PM.</td>
+                <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-[10px] font-medium">Failed</span></td>
+                <td class="px-4 py-2.5 text-gray-500">13 Aug 2026, 09:40 AM</td>
+            </tr>
+            <tr>
+                <td class="px-4 py-2.5">+8801644556677</td>
+                <td class="px-4 py-2.5 max-w-xs truncate">Thank you for your feedback on our service.</td>
+                <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-600 text-[10px] font-medium">Pending</span></td>
+                <td class="px-4 py-2.5 text-gray-500">13 Aug 2026, 09:15 AM</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    (function() {
+        const btn = document.getElementById('toggleSmsFormBtn');
+        const container = document.getElementById('smsFormContainer');
+        const icon = document.getElementById('toggleSmsIcon');
+        const text = document.getElementById('toggleSmsText');
+        let open = false;
+        btn.addEventListener('click', function() {
+            open = !open;
+            container.classList.toggle('grid-rows-[0fr]', !open);
+            container.classList.toggle('grid-rows-[1fr]', open);
+            container.classList.toggle('opacity-0', !open);
+            container.classList.toggle('opacity-100', open);
+            icon.classList.toggle('fa-paper-plane', !open);
+            icon.classList.toggle('fa-xmark', open);
+            text.textContent = open ? 'Close' : 'Send SMS';
+        });
+    })();
+</script>
+{% endblock %}

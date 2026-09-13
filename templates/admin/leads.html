@@ -1,0 +1,165 @@
+{% extends 'admin/base.html' %}
+{% block title %}Leads{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">Leads</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Named lead lists used by Auto Dial &amp; Broadcast campaigns</p>
+    </div>
+
+    <button id="toggleCreateListBtn"
+            class="w-[110px] justify-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+        <i id="toggleCreateListIcon" class="fas fa-plus text-[10px]"></i>
+        <span id="toggleCreateListText">Create Lead</span>
+    </button>
+</div>
+
+<!-- Toggleable form container -->
+<div id="createListFormContainer" class="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-in-out overflow-hidden">
+    <div class="min-h-0 overflow-hidden">
+        <form method="post" enctype="multipart/form-data" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_list">
+            <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <i class="fas fa-user-plus text-[10px]"></i> Create Lead
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Name -->
+                <div>
+                    <label for="leadListName" class="block text-[11px] font-semibold text-slate-600 mb-1">Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-tag text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="text" id="leadListName" name="name" placeholder="e.g. August Campaign"
+                               class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs placeholder:text-[11px]">
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="leadListDescription" class="block text-[11px] font-semibold text-slate-600 mb-1">Description</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-align-left text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="text" id="leadListDescription" name="description" placeholder="Optional"
+                               class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs placeholder:text-[11px]">
+                    </div>
+                </div>
+
+                <!-- Choose File -->
+                <div>
+                    <label for="leadListFile" class="block text-[11px] font-semibold text-slate-600 mb-1">Choose File (.csv, .txt or .xlsx)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-paperclip text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="file" id="leadListFile" name="file" accept=".csv,.txt,.xlsx" class="pl-9 block w-full text-[11px] text-gray-500 border border-gray-300 rounded px-3 py-1.5 leading-tight file:border-0 file:bg-transparent file:p-0 file:mr-2 file:text-[11px] file:text-gray-500 focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Lead Upload -->
+                <div>
+                    <label for="leadListNumbers" class="block text-[11px] font-semibold text-slate-600 mb-1">Lead Upload</label>
+                    <div class="relative">
+                        <div class="absolute top-2 left-0 pl-3 flex items-start pointer-events-none">
+                            <i class="fas fa-file-import text-gray-400 text-sm"></i>
+                        </div>
+                        <textarea id="leadListNumbers" name="numbers" rows="1" placeholder="Paste numbers, one per line"
+                                  class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs placeholder:text-[11px]"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end mt-4">
+                <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Save Lead</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-100 border-b border-slate-200">
+                <tr>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-10">S/N</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Name</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Description</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Leads</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Created</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-[12px]">
+                {% for lead_list in lead_lists %}
+                <tr class="bg-white">
+                    <td class="px-4 py-2 text-slate-500 w-10">{{ forloop.counter }}</td>
+                    <td class="px-4 py-2 font-semibold text-slate-800">{{ lead_list.name }}</td>
+                    <td class="px-4 py-2 text-slate-500">{{ lead_list.description|default:"—" }}</td>
+                    <td class="px-4 py-2 text-slate-500">{{ lead_list.lead_count }}</td>
+                    <td class="px-4 py-2 text-slate-400 text-[10px] whitespace-nowrap">{{ lead_list.created_at|date:DATETIME_FORMAT }}</td>
+                    <td class="px-4 py-2 text-right">
+                        <a href="{% url 'admin_lead_list' lead_list.id %}" class="inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-indigo-600">
+                            <i class="fas fa-pen text-[11px]"></i>
+                        </a>
+                        <form method="post" class="inline" onsubmit="return confirm('Delete this lead list and all its numbers?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_list">
+                            <input type="hidden" name="id" value="{{ lead_list.id }}">
+                            <button type="submit" class="inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash text-[11px]"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-4 py-4 text-center">
+                        <div class="flex flex-col items-center gap-1.5">
+                            <i class="fas fa-address-book text-slate-300 text-xl"></i>
+                            <p class="text-slate-500 text-[11px] font-medium">No lead lists created yet</p>
+                            <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">Create Lead</span> to add one</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+  (function() {
+    const toggleBtn = document.getElementById('toggleCreateListBtn');
+    const formContainer = document.getElementById('createListFormContainer');
+    const toggleIcon = document.getElementById('toggleCreateListIcon');
+    const toggleText = document.getElementById('toggleCreateListText');
+
+    let isOpen = false;
+
+    toggleBtn.addEventListener('click', function() {
+      isOpen = !isOpen;
+
+      if (isOpen) {
+        formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+        formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+        toggleIcon.classList.remove('fa-plus');
+        toggleIcon.classList.add('fa-times');
+        toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+        toggleText.textContent = 'Cancel';
+      } else {
+        formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+        formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+        toggleIcon.classList.remove('fa-times');
+        toggleIcon.classList.add('fa-plus');
+        toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleText.textContent = 'Create Lead';
+      }
+    });
+  })();
+</script>
+{% endblock %}

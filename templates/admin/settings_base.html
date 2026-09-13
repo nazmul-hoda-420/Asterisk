@@ -1,0 +1,46 @@
+{% extends 'admin/base.html' %}
+
+{% block body %}
+<!-- Settings sub-sidebar -->
+<aside class="w-40 shrink-0 bg-white border-r border-gray-200 hidden md:flex md:flex-col pt-4 h-screen sticky top-0">
+    <nav class="flex-1 px-2 space-y-1 overflow-y-auto">
+        <a href="{% url 'admin_settings_users' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'users' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-users w-3 text-[9px]"></i> Users
+        </a>
+        <a href="{% url 'admin_settings_registration' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'registration' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-user-plus w-3 text-[9px]"></i> Registration
+        </a>
+        <a href="{% url 'admin_settings_call_time' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'call_time' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-clock w-3 text-[9px]"></i> Call Time
+        </a>
+        <a href="{% url 'admin_settings_ivr' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'ivr' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-sitemap w-3 text-[9px]"></i> IVR
+        </a>
+        <a href="{% url 'admin_settings_queue' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'queue' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-layer-group w-3 text-[9px]"></i> Groups
+        </a>
+        <a href="{% url 'admin_settings_routing' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'routing' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-route w-3 text-[9px]"></i> Routing
+        </a>
+        <a href="{% url 'admin_settings_sounds' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'sounds' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-music w-3 text-[9px]"></i> Sounds
+        </a>
+        <a href="{% url 'admin_settings_blacklist' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'blacklist' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-solid fa-ban w-3 text-[9px]"></i> Blacklist/DND
+        </a>
+        <a href="{% url 'admin_settings_whatsapp' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'whatsapp' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-brands fa-whatsapp w-3 text-[9px]"></i> WhatsApp
+        </a>
+        <a href="{% url 'admin_settings_facebook' %}" class="flex items-center gap-2.5 px-3 py-1 border-l-[3px] text-xs {% if settings_active == 'facebook' %}border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold{% else %}border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-800{% endif %} transition">
+            <i class="fa-brands fa-facebook-messenger w-3 text-[9px]"></i> Facebook
+        </a>
+    </nav>
+</aside>
+
+<!-- Main content -->
+<div class="flex-1 flex flex-col min-w-0">
+    <main class="flex-1 p-2.5 min-w-0">
+        {% block settings_content %}{% endblock %}
+    </main>
+</div>
+{% endblock %}

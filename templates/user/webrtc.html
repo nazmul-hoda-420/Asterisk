@@ -1,0 +1,891 @@
+{% load static %}
+<div class="w-[240px] max-w-full rounded-[3px] shadow-2xl overflow-hidden flex flex-col h-[410px] relative bg-slate-900 border border-white/5">
+
+  <!-- TOP STATUS BAR -->
+  <div class="absolute top-0 left-0 right-0 flex justify-between items-center h-5 px-2 py-1 text-xs z-10 bg-black/70 text-white backdrop-blur-sm">
+    <div class="flex items-center gap-1">
+      <div id="topStatusIndicator" class="w-2 h-2 bg-emerald-400 rounded-full"></div>
+      <span class="text-[11px] font-normal" id="topConnectionStatus">Disconnected</span>
+    </div>
+    <span class="text-[11px] tracking-widest opacity-80">WebRTC</span>
+    <div class="flex items-center gap-2">
+      <i id="networkIcon" class="fas fa-signal text-emerald-400 text-[10px]"></i>
+      <div class="relative flex items-center justify-center w-[26px] h-[12px] border border-white/40 rounded-[2px] p-[0.5px] bg-black/30 overflow-hidden">
+        <div id="batteryBar" class="absolute left-0 top-0 h-full bg-emerald-500/60" style="width:73%"></div>
+        <span id="batteryLevel" class="relative z-10 text-[7px] font-bold leading-none text-white tracking-tighter">73%</span>
+      </div>
+      <span id="currentTime" class="text-[11px]">--:--</span>
+    </div>
+  </div>
+
+    <!-- IPHONE STYLE NOTIFICATION BANNER -->
+    <div id="notifBanner"
+        class="absolute left-2 right-2 z-50 rounded-sm px-2.5 py-1.5 flex items-center gap-2 pointer-events-none opacity-0"
+        style="top:22px; backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); box-shadow:0 4px 20px rgba(0,0,0,0.5),0 1px 0 rgba(255,255,255,0.05); transform:translateY(-60px); transition: transform 0.38s cubic-bezier(0.34,1.26,0.64,1), opacity 0.25s ease;">
+        <div id="notifIconWrap" class="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 bg-emerald-500">
+        <i id="notifIcon" class="fas fa-circle-check text-[10px] text-white"></i>
+        </div>
+        <div class="flex flex-col min-w-0 flex-1">
+        <span id="notifTitle" class="text-[11px] text-white leading-tight tracking-wide"></span>
+        <span id="notifMsg"   class="text-[11px] text-white/75 leading-tight truncate"></span>
+        </div>
+        <button onclick="dismissBanner()" class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/25 transition-all active:scale-90 pointer-events-auto">
+        <i class="fas fa-xmark text-[8px] text-white/70"></i>
+        </button>
+    </div>
+
+  <!-- DIALER SCREEN -->
+  <div id="dialerScreen" class="flex flex-col h-full pt-8 bg-gray-900">
+    <div class="p-1 text-center relative bg-gray-900 h-[55px] flex items-center justify-center">
+      <div class="relative w-[95%]">
+        <input id="dialedNumber" type="tel"
+          class="w-full text-lg font-semibold bg-gray-800 border-[1px] border-white/40 rounded-sm py-2 pl-4 pr-12 outline-none text-center text-white placeholder-white/30"
+          placeholder="+880 1234-567890" autofocus
+          oninput="this.value = this.value.replace(/[^0-9+]/g, '')" />
+        <div class="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <button onclick="backspace()" class="text-white/40 hover:text-red-400 p-1">
+            <i class="fas fa-times-circle text-base"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="p-2 grid grid-cols-3 gap-0.5 text-white">
+      <button onclick="addNumber('1')" class="text-md font-semibold hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">1</button>
+      <button onclick="addNumber('2')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">2</span><span class="text-[10px] text-white/60">ABC</span>
+      </button>
+      <button onclick="addNumber('3')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">3</span><span class="text-[10px] text-white/60">DEF</span>
+      </button>
+      <button onclick="addNumber('4')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">4</span><span class="text-[10px] text-white/60">GHI</span>
+      </button>
+      <button onclick="addNumber('5')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">5</span><span class="text-[10px] text-white/60">JKL</span>
+      </button>
+      <button onclick="addNumber('6')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">6</span><span class="text-[10px] text-white/60">MNO</span>
+      </button>
+      <button onclick="addNumber('7')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">7</span><span class="text-[10px] text-white/60">PQRS</span>
+      </button>
+      <button onclick="addNumber('8')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">8</span><span class="text-[10px] text-white/60">TUV</span>
+      </button>
+      <button onclick="addNumber('9')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">9</span><span class="text-[10px] text-white/60">WXYZ</span>
+      </button>
+      <button onclick="addNumber('*')" class="text-md font-semibold hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">*</button>
+      <button onclick="addNumber('0')" class="flex flex-col items-center hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">
+        <span class="text-md font-semibold">0</span><span class="text-[10px] text-white/60">+</span>
+      </button>
+      <button onclick="addNumber('#')" class="text-md font-semibold hover:bg-white/10 rounded-lg py-2 transition-all active:scale-95">#</button>
+    </div>
+    <div class="absolute bottom-[30px] left-0 right-0 flex justify-center">
+      <button onclick="makeCall()" class="bg-emerald-500 hover:bg-emerald-600 rounded-full w-20 h-10 flex items-center justify-center shadow-lg active:scale-95 transition-all duration-200">
+        <i class="fas fa-phone text-white text-xl"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- CALL SCREEN -->
+  <div id="callScreen" class="hidden flex flex-col h-full bg-gray-900">
+    <div class="pt-12 pb-9 flex flex-col justify-center items-center px-4 text-center">
+      <span id="callNumber" class="text-lg font-semibold text-emerald-400 tracking-tight">Number</span>
+      <span id="callTimer" class="text-xs font-mono font-medium text-white">Calling...</span>
+    </div>
+    <div class="px-5 mt-2">
+      <div class="grid grid-cols-3 gap-y-5 gap-x-2 text-center text-[9px] tracking-[0.5px]">
+        <button onclick="toggleRecording(this)" class="flex flex-col items-center outline-none group transition-all active:scale-95">
+          <div id="recordBg" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 transition-all mb-1 border border-white/5 group-hover:bg-white/10">
+            <i id="recordIcon" class="fas fa-circle text-base text-white"></i>
+          </div>
+          <span class="uppercase text-white/80">Record</span>
+        </button>
+        <button onclick="openTransferModal()" class="flex flex-col items-center outline-none group transition-all active:scale-95">
+          <div class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 transition-all mb-1 border border-white/5 group-hover:bg-white/10">
+            <i class="fas fa-share text-base text-white"></i>
+          </div>
+          <span class="uppercase text-white/80">Transfer</span>
+        </button>
+        <button onclick="openConferenceModal()" class="flex flex-col items-center outline-none group transition-all active:scale-95">
+          <div class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 transition-all mb-1 border border-white/5 group-hover:bg-white/10">
+            <i class="fas fa-users text-base text-white"></i>
+          </div>
+          <span class="uppercase text-white/80">Conference</span>
+        </button>
+        <button onclick="toggleMute(this)" class="flex flex-col items-center outline-none group transition-all active:scale-95">
+          <div id="muteBg" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 transition-all mb-1 border border-white/5 group-hover:bg-white/10">
+            <i id="muteIcon" class="fas fa-microphone text-base text-white"></i>
+          </div>
+          <span class="uppercase text-white/80">Mute</span>
+        </button>
+        <button onclick="toggleHold(this)" class="flex flex-col items-center outline-none group transition-all active:scale-95">
+          <div id="holdBg" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 transition-all mb-1 border border-white/5 group-hover:bg-white/10">
+            <i id="holdIcon" class="fas fa-pause text-base text-white"></i>
+          </div>
+          <span class="uppercase text-white/80">Hold</span>
+        </button>
+        <button onclick="toggleSpeaker(this)" class="flex flex-col items-center outline-none group transition-all active:scale-95">
+          <div id="speakerBg" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 transition-all mb-1 border border-white/5 group-hover:bg-white/10">
+            <i id="speakerIcon" class="fas fa-volume-up text-base text-white"></i>
+          </div>
+          <span class="uppercase text-white/80">Speaker</span>
+        </button>
+      </div>
+    </div>
+    <div class="absolute bottom-[30px] left-0 right-0 flex justify-center">
+      <button onclick="hangup()" class="bg-red-500 hover:bg-red-600 w-20 h-10 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all duration-200">
+        <i class="fas fa-phone-slash text-white text-lg"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- INCOMING CALL OVERLAY -->
+  <div id="incomingScreen" class="hidden absolute inset-0 z-15 bg-gray-900/95 backdrop-blur-sm flex flex-col items-center justify-center" style="top: 28px; bottom: 28px;">
+    <div class="flex-1 flex flex-col items-center justify-center px-4 text-center">
+      <div class="mb-4">
+        <div class="w-20 h-20 rounded-full bg-gray-800 flex items-center justify-center border-2 border-white/20 mx-auto shadow-lg">
+          <i class="fas fa-user text-4xl text-white/30"></i>
+        </div>
+      </div>
+      <div class="text-white/70 text-[11px] tracking-widest uppercase mb-1">Incoming Call</div>
+      <span id="incomingNumber" class="text-2xl font-bold text-white mb-2">Unknown</span>
+    </div>
+    <div class="relative flex items-center justify-center gap-16 pb-7 mx-auto">
+      <div class="flex flex-col items-center gap-2 z-20">
+        <button onclick="rejectIncomingCall()" class="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center border-2 border-red-400/50 active:scale-95 hover:bg-red-500/40 transition-all duration-200">
+          <i class="fas fa-phone-slash text-xl text-red-400"></i>
+        </button>
+        <span class="text-[11px] text-white font-semibold tracking-wide">Reject</span>
+      </div>
+      <div class="absolute inset-0 flex items-center justify-center pointer-events-none h-14">
+        <div class="flex flex-row-reverse items-center">
+          <i class="fas fa-chevron-left text-[9px] text-white/70 animate-[slideLeft_1.2s_infinite_ease-in-out]"></i>
+          <i class="fas fa-chevron-left text-[9px] text-white/30 animate-[slideLeft_1.2s_infinite_ease-in-out_0.2s] -ml-1"></i>
+        </div>
+        <div class="flex items-center">
+          <i class="fas fa-chevron-right text-[9px] text-white/70 animate-[slideRight_1.2s_infinite_ease-in-out]"></i>
+          <i class="fas fa-chevron-right text-[9px] text-white/30 animate-[slideRight_1.2s_infinite_ease-in-out_0.2s] -ml-1"></i>
+        </div>
+      </div>
+      <div class="flex flex-col items-center gap-2 z-20">
+        <button onclick="acceptIncomingCall()" class="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center border-2 border-emerald-400/50 active:scale-95 hover:bg-emerald-500/40 transition-all duration-200">
+          <i class="fas fa-phone-alt text-xl text-emerald-400"></i>
+        </button>
+        <span class="text-[11px] text-white font-semibold tracking-wide">Accept</span>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes slideLeft {
+      0% { transform: translateX(0); opacity: 0; }
+      20% { opacity: 1; }
+      100% { transform: translateX(-50px); opacity: 0; }
+    }
+    @keyframes slideRight {
+      0% { transform: translateX(0); opacity: 0; }
+      20% { opacity: 1; }
+      100% { transform: translateX(50px); opacity: 0; }
+    }
+  </style>
+
+  <!-- BOTTOM STATUS BAR -->
+  <div class="absolute bottom-0 left-0 right-0 flex justify-between items-center h-5 px-2 py-1 text-[10px] z-20 bg-black/70 text-white backdrop-blur-sm border-t border-white/5">
+    <div class="flex items-center">
+      <label class="relative inline-flex items-center cursor-pointer scale-75 origin-left">
+        <input type="checkbox" id="statusToggle" class="sr-only peer" {% if not is_paused %}checked{% endif %} onchange="toggleStatus()">
+        <div class="w-7 h-4 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-500"></div>
+      </label>
+      <span id="statusText" class="font-normal ml-1">Ready</span>
+    </div>
+    <div class="font-normal tracking-wide">{{ extension }}</div>
+  </div>
+
+  <!-- TRANSFER MODAL -->
+  <div id="transferModal" class="absolute inset-0 hidden items-center justify-center z-50" style="display: none;">
+    <div class="bg-gray-800 rounded-sm w-[210px] p-3 shadow-xl border border-white/20 transform transition-all scale-100">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-white font-semibold text-sm flex items-center gap-1.5">
+          <i class="fas fa-exchange-alt text-emerald-400 text-xs"></i>
+          Transfer Call
+        </h3>
+      </div>
+      <div class="mb-4">
+        <label class="text-white/60 text-[9px] uppercase tracking-wider block mb-1 ml-1">Transfer Number</label>
+        <input type="text" id="transferNumberInput"
+          class="w-full bg-gray-700 border border-white/20 rounded-sm py-1.5 px-2.5 text-white text-xs outline-none focus:border-emerald-500/70 transition-all placeholder-white/30 placeholder:tracking-[0.10em]"
+          placeholder="+880 1234-567890"
+          autocomplete="off"
+          oninput="this.value = this.value.replace(/[^0-9+]/g, '')">
+      </div>
+      <div class="flex gap-2 mb-2">
+        <button onclick="closeTransferModal()"
+          class="flex-1 bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium py-1.5 rounded-sm transition-all active:scale-95 shadow-md">
+          Cancel
+        </button>
+        <button onclick="confirmTransfer()"
+          class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium py-1.5 rounded-sm transition-all active:scale-95 shadow-md flex items-center justify-center gap-1">
+          <i class="fas fa-phone-alt text-[10px]"></i>
+          Transfer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFERENCE MODAL -->
+  <div id="conferenceModal" class="absolute inset-0 hidden items-center justify-center z-50" style="display: none;">
+    <div class="bg-gray-800 rounded-sm w-[210px] p-3 shadow-xl border border-white/20 transform transition-all scale-100">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-white font-semibold text-sm flex items-center gap-1.5">
+          <i class="fas fa-users text-emerald-400 text-xs"></i>
+          Conference Call
+        </h3>
+      </div>
+      <div class="mb-4">
+        <label class="text-white/60 text-[9px] uppercase tracking-wider block mb-1 ml-1">Add Participant Number</label>
+        <input type="text" id="conferenceNumberInput"
+          class="w-full bg-gray-700 border border-white/20 rounded-sm py-1.5 px-2.5 text-white text-xs outline-none focus:border-emerald-500/70 transition-all placeholder-white/30 placeholder:tracking-[0.10em]"
+          placeholder="+880 1234-567890"
+          autocomplete="off"
+          oninput="this.value = this.value.replace(/[^0-9+]/g, '')">
+      </div>
+      <div id="conferenceButtonsContainer" class="flex gap-2 mb-2">
+        <button onclick="closeConferenceModal()"
+          class="flex-1 bg-gray-600 hover:bg-gray-500 text-white text-xs font-medium py-1.5 rounded-sm transition-all active:scale-95 shadow-md">
+          Cancel
+        </button>
+        <button onclick="showConferenceActions()"
+          class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium py-1.5 rounded-sm transition-all active:scale-95 shadow-md flex items-center justify-center gap-1">
+          <i class="fas fa-users text-[10px]"></i>
+          Conference
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<audio id="remoteAudio" autoplay playsinline></audio>
+<audio id="ringtone" loop src="{% static 'ringtone.mp3' %}" preload="auto"></audio>
+
+<script>
+    const SERVER_IP  = '{{ SERVER_IP|escapejs }}';
+    const WS_URL     = `wss://${SERVER_IP}:8089/ws`;
+    const EXTENSION = '{{ extension|default:""|escapejs }}';
+    const PASSWORD = '{{ extension_password|default:""|escapejs }}';
+
+    let ua               = null;
+    let currentSession   = null;
+    let pendingSession   = null;
+    let isRinging        = false;
+    let isCallConnected  = false;
+    let callTimerInterval = null;
+    let callSeconds      = 0;
+    let isMuted          = false;
+    let isOnHold         = false;
+    let isRecording      = false;
+    let mediaRecorder    = null;
+    let recordedChunks   = [];
+    let healthInterval   = null;
+
+    let remoteAudio, ringtone;
+    let dialerScreen, callScreen, incomingScreen;
+    let dialInput, callNumberEl, callTimerEl;
+    let topIndicator, topStatus;
+    let statusToggle, statusText, incomingNumberEl;
+
+    function showToast(title, message, type = 'info') {
+        const banner   = document.getElementById('notifBanner');
+        const iconWrap = document.getElementById('notifIconWrap');
+        const iconEl   = document.getElementById('notifIcon');
+        const titleEl  = document.getElementById('notifTitle');
+        const msgEl    = document.getElementById('notifMsg');
+        if (!banner) return;
+
+        const cfg = {
+            success : { bg: 'rgba(16,185,129,0.18)',  border: '1px solid rgba(16,185,129,0.35)',  iconBg: '#10b981', icon: 'fa-circle-check'        },
+            error   : { bg: 'rgba(239,68,68,0.18)',   border: '1px solid rgba(239,68,68,0.35)',   iconBg: '#ef4444', icon: 'fa-circle-xmark'        },
+            warning : { bg: 'rgba(234,179,8,0.18)',   border: '1px solid rgba(234,179,8,0.35)',   iconBg: '#eab308', icon: 'fa-triangle-exclamation' },
+            info    : { bg: 'rgba(59,130,246,0.18)',  border: '1px solid rgba(59,130,246,0.35)',  iconBg: '#3b82f6', icon: 'fa-circle-info'         },
+        };
+        const c = cfg[type] || cfg.info;
+
+        banner.style.background    = c.bg;
+        banner.style.border        = c.border;
+        iconWrap.style.background  = c.iconBg;
+        iconEl.className           = `fas ${c.icon} text-[10px] text-white`;
+        titleEl.innerText          = title;
+        msgEl.innerText            = message;
+
+        clearTimeout(window._bannerTimer);
+        banner.style.transition    = 'transform 0.38s cubic-bezier(0.34,1.26,0.64,1), opacity 0.25s ease';
+        banner.style.transform     = 'translateY(0px)';
+        banner.style.opacity       = '1';
+        banner.style.pointerEvents = 'auto';
+
+        window._bannerTimer = setTimeout(() => {
+            banner.style.transition    = 'transform 0.3s ease-in, opacity 0.3s ease-in';
+            banner.style.transform     = 'translateY(-60px)';
+            banner.style.opacity       = '0';
+            banner.style.pointerEvents = 'none';
+        }, 3000);
+    }
+
+    function fmt(s) {
+        return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    }
+
+    function updateConnectionStatus(ok) {
+        if (ok) {
+            topIndicator.className = 'w-2 h-2 bg-emerald-400 rounded-full';
+            topStatus.innerText    = 'Connected';
+            showToast('Connected successfully', '', 'success');
+        } else {
+            topIndicator.className = 'w-2 h-2 bg-red-500 rounded-full';
+            topStatus.innerText    = 'Disconnected';
+            showToast('Connection Disconnected', '', 'error');
+        }
+    }
+
+    function updateClock() {
+        const now  = new Date();
+        let   h    = now.getHours();
+        const m    = now.getMinutes();
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        document.getElementById('currentTime').innerText = `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+    }
+
+    function showDialer() {
+        dialerScreen.classList.remove('hidden');
+        callScreen.classList.add('hidden');
+        callScreen.style.display = 'none';
+        incomingScreen.classList.add('hidden');
+        if (dialInput) dialInput.value = '';
+    }
+
+    function showCallScreen(number) {
+        dialerScreen.classList.add('hidden');
+        callScreen.classList.remove('hidden');
+        callScreen.style.display = 'flex';
+        incomingScreen.classList.add('hidden');
+        if (number) {
+            callNumberEl.innerText = number;
+            if (typeof resetAndFillCrmPhone === 'function') {
+                resetAndFillCrmPhone(number);
+            }
+        }
+        callTimerEl.innerText = 'Calling...';
+    }
+
+    function showIncoming(caller) {
+        dialerScreen.classList.add('hidden');
+        callScreen.classList.add('hidden');
+        incomingScreen.classList.remove('hidden');
+        incomingNumberEl.innerText = caller || 'Unknown';
+    }
+
+    function playRingtone() {
+        if (isRinging) return;
+        ringtone.currentTime = 0;
+        ringtone.play().catch(() => {});
+        isRinging = true;
+        if (navigator.vibrate) navigator.vibrate([1000, 500, 1000]);
+    }
+
+    function stopRingtone() {
+        if (!isRinging) return;
+        ringtone.pause();
+        ringtone.currentTime = 0;
+        isRinging = false;
+        if (navigator.vibrate) navigator.vibrate(0);
+    }
+
+    function startCallTimer() {
+        stopCallTimer();
+        isCallConnected = true;
+        callSeconds = 0;
+        callTimerEl.innerText = '00:00';
+        callTimerInterval = setInterval(() => {
+            callSeconds++;
+            callTimerEl.innerText = fmt(callSeconds);
+        }, 1000);
+    }
+
+    function stopCallTimer() {
+        if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+        isCallConnected = false;
+        callSeconds = 0;
+        if (callTimerEl) callTimerEl.innerText = '00:00';
+    }
+
+    function getPcConfig() {
+        return {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
+            ],
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require'
+        };
+    }
+
+    function forceAttachAudioToSession(session) {
+        const sdh = session.sessionDescriptionHandler;
+        if (sdh && sdh.peerConnection) attachToPeerConnection(sdh.peerConnection);
+        session.on('peerconnection', (e) => attachToPeerConnection(e.peerconnection));
+        session.on('progress', () => {
+            const pc = session.connection || session.sessionDescriptionHandler?.peerConnection;
+            if (pc && (!remoteAudio.srcObject || remoteAudio.srcObject.getTracks().length === 0)) pullStreamFromPC(pc);
+            setTimeout(() => {
+                const pc2 = session.connection || session.sessionDescriptionHandler?.peerConnection;
+                if (pc2) pullStreamFromPC(pc2);
+            }, 600);
+        });
+    }
+
+    function attachToPeerConnection(pc) {
+        pc.addEventListener('track', (ev) => {
+            if (ev.track.kind !== 'audio') return;
+            const stream = ev.streams[0] || new MediaStream([ev.track]);
+            setAudioStream(stream);
+        });
+        setTimeout(() => {
+            if (pc.connectionState === 'connecting' || pc.connectionState === 'new') pullStreamFromPC(pc);
+        }, 200);
+    }
+
+    function pullStreamFromPC(pc) {
+        if (!pc) return;
+        const stream = new MediaStream();
+        pc.getReceivers().forEach(receiver => {
+            if (receiver.track && receiver.track.kind === 'audio') stream.addTrack(receiver.track);
+        });
+        if (stream.getTracks().length > 0) setAudioStream(stream);
+    }
+
+    function setAudioStream(stream) {
+        if (remoteAudio.srcObject === stream) return;
+        remoteAudio.srcObject = stream;
+        remoteAudio.volume    = 1.0;
+        remoteAudio.muted     = false;
+        const p = remoteAudio.play();
+        if (p !== undefined) {
+            p.catch(() => {
+                const retry = () => {
+                    remoteAudio.play().catch(() => {});
+                    document.removeEventListener('click',      retry);
+                    document.removeEventListener('touchstart', retry);
+                };
+                document.addEventListener('click',      retry, { once: true });
+                document.addEventListener('touchstart', retry, { once: true });
+            });
+        }
+    }
+
+    function cleanupSession() {
+        stopCallTimer();
+        stopRingtone();
+        isMuted  = false;
+        isOnHold = false;
+        if (isRecording) stopRecording();
+        if (remoteAudio) { remoteAudio.pause(); remoteAudio.srcObject = null; }
+        currentSession = null;
+        pendingSession = null;
+        if (typeof loadOwnCrmEntries === 'function') loadOwnCrmEntries();
+        showDialer();
+    }
+
+    async function makeCall() {
+        if (!ua)            { showToast('Error', 'SIP not connected', 'error'); return; }
+        if (pendingSession) { showToast('Busy', 'Incoming call pending', 'warning'); return; }
+        if (currentSession) { showToast('Busy', 'Call already active', 'warning'); return; }
+
+        const target = dialInput.value.trim();
+        if (!target) { showToast('Please Enter a Number', '', 'warning'); return; }
+
+        showCallScreen(target);
+        showToast(`Calling ${target}`, '', 'info');
+
+        const session = ua.call(`sip:${target}@${SERVER_IP}`, {
+            mediaConstraints: { audio: true, video: false },
+            pcConfig: getPcConfig(),
+            earlyMedia: true
+        });
+        currentSession = session;
+        forceAttachAudioToSession(session);
+
+        session.on('progress',  () => { callTimerEl.innerText = 'Ringing...'; });
+        session.on('confirmed', () => {
+            showToast('Call connected successfully', '', 'success');
+            startCallTimer();
+            const pc = session.connection || session.sessionDescriptionHandler?.peerConnection;
+            if (pc && (!remoteAudio.srcObject || remoteAudio.srcObject.getTracks().length === 0)) pullStreamFromPC(pc);
+        });
+        session.on('failed', (e) => { showToast('Call Failed', e.cause || 'Unknown reason', 'error'); cleanupSession(); });
+        session.on('ended',  ()  => { showToast('Call has been Disconnected', '', 'info'); cleanupSession(); });
+    }
+
+    function onIncomingCall(session) {
+        if (currentSession || pendingSession) {
+            session.terminate({ status_code: 486, reason_phrase: 'Busy Here' });
+            showToast('Busy', 'Call rejected - line busy', 'warning');
+            return;
+        }
+        pendingSession = session;
+        const caller = session.remote_identity.uri.user || 'Unknown';
+        playRingtone();
+        showIncoming(caller);
+        forceAttachAudioToSession(session);
+        showToast('Incoming Call', `Call from ${caller}`, 'info');
+        session.on('failed', () => { if (pendingSession === session) cleanupSession(); });
+        session.on('ended',  () => { if (pendingSession === session) cleanupSession(); });
+    }
+
+    function acceptIncomingCall() {
+        if (!pendingSession) return;
+        stopRingtone();
+        const session  = pendingSession;
+        currentSession = session;
+        pendingSession = null;
+        session.answer({ mediaConstraints: { audio: true, video: false }, pcConfig: getPcConfig() });
+        session.on('confirmed', () => startCallTimer());
+        session.on('failed',    () => cleanupSession());
+        session.on('ended',     () => cleanupSession());
+        const caller = session.remote_identity.uri.user || 'Caller';
+        showCallScreen(caller);
+        showToast('Call Accepted', `Connected with ${caller}`, 'success');
+    }
+
+    function rejectIncomingCall() {
+        if (!pendingSession) return;
+        stopRingtone();
+        try { pendingSession.terminate({ status_code: 486 }); } catch(_) {}
+        pendingSession = null;
+        showDialer();
+        showToast('Call Rejected', 'Incoming call rejected', 'info');
+    }
+
+    function hangup() {
+        stopRingtone();
+        if (pendingSession) { try { pendingSession.terminate(); } catch(_) {} pendingSession = null; }
+        if (currentSession) { try { currentSession.terminate(); } catch(_) {} }
+        cleanupSession();
+        showToast('Call Canceled', '', 'info');
+    }
+
+    function toggleMute(btn) {
+        if (!currentSession) { showToast('Error', 'No active call', 'error'); return; }
+        isMuted = !isMuted;
+        isMuted ? currentSession.mute() : currentSession.unmute();
+        showToast(isMuted ? 'Muted' : 'Unmuted', isMuted ? 'Microphone is now muted' : 'Microphone is now active', isMuted ? 'info' : 'success');
+        const icon = btn.querySelector('i'), bg = btn.querySelector('div');
+        if (isMuted) {
+            icon.className = 'fas fa-microphone-slash text-base text-red-400';
+            bg.classList.add('bg-red-500/20'); bg.classList.remove('bg-white/5');
+        } else {
+            icon.className = 'fas fa-microphone text-base text-white';
+            bg.classList.add('bg-white/5'); bg.classList.remove('bg-red-500/20');
+        }
+    }
+
+    function toggleHold(btn) {
+        if (!currentSession) { showToast('Error', 'No active call', 'error'); return; }
+        isOnHold = !isOnHold;
+        isOnHold ? currentSession.hold() : currentSession.unhold();
+        showToast(isOnHold ? 'On Hold' : 'Resumed', isOnHold ? 'Call is on hold' : 'Call has resumed', isOnHold ? 'warning' : 'success');
+        const icon = btn.querySelector('i'), bg = btn.querySelector('div');
+        if (isOnHold) {
+            icon.className = 'fas fa-play text-base text-yellow-400';
+            bg.classList.add('bg-yellow-500/20'); bg.classList.remove('bg-white/5');
+            if (callTimerEl) callTimerEl.innerText = 'On Hold';
+        } else {
+            icon.className = 'fas fa-pause text-base text-white';
+            bg.classList.add('bg-white/5'); bg.classList.remove('bg-yellow-500/20');
+            if (callTimerEl) callTimerEl.innerText = fmt(callSeconds);
+        }
+    }
+
+    function toggleSpeaker(btn) {
+        const bg = btn.querySelector('div'), icon = btn.querySelector('i');
+        const isSpeakerOn = bg.classList.contains('bg-emerald-500/20');
+        if (!isSpeakerOn) {
+            bg.classList.add('bg-emerald-500/20'); icon.className = 'fas fa-volume-up text-base text-emerald-400';
+            if (remoteAudio) remoteAudio.volume = 1.0;
+            showToast('Speaker On', 'Speaker mode activated', 'success');
+        } else {
+            bg.classList.remove('bg-emerald-500/20'); icon.className = 'fas fa-volume-up text-base text-white';
+            if (remoteAudio) remoteAudio.volume = 0.5;
+            showToast('Speaker Off', 'Speaker mode deactivated', 'info');
+        }
+    }
+
+    async function toggleRecording(btn) {
+        if (!currentSession) { showToast('Error', 'No active call', 'error'); return; }
+        const bg = btn.querySelector('div'), icon = btn.querySelector('i');
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder  = new MediaRecorder(stream);
+                recordedChunks = [];
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    const url  = URL.createObjectURL(blob);
+                    const a    = document.createElement('a');
+                    a.href = url; a.download = `call_recording_${Date.now()}.webm`; a.click();
+                    URL.revokeObjectURL(url);
+                    stream.getTracks().forEach(t => t.stop());
+                    showToast('Recording Saved', 'Call recording saved successfully', 'success');
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                bg.classList.add('bg-red-500/20'); bg.classList.remove('bg-white/5');
+                icon.className = 'fas fa-circle text-base text-red-400';
+                showToast('Recording', 'Call recording is now active', 'success');
+            } catch(e) { showToast('Error', 'Could not start recording', 'error'); }
+        } else {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop(); isRecording = false;
+                bg.classList.add('bg-white/5'); bg.classList.remove('bg-red-500/20');
+                icon.className = 'fas fa-circle text-base text-white';
+            }
+        }
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.stop(); isRecording = false; }
+    }
+
+    function openTransferModal() {
+        if (!currentSession) { showToast('Error', 'No active call to transfer', 'error'); return; }
+        if (!isCallConnected) return;
+        document.getElementById('transferModal').style.display = 'flex';
+        document.getElementById('transferNumberInput').value = '';
+    }
+    function closeTransferModal() { document.getElementById('transferModal').style.display = 'none'; }
+    function confirmTransfer() {
+        const target = document.getElementById('transferNumberInput').value.trim();
+        if (!target) { showToast('Error', 'Please enter transfer number', 'error'); return; }
+        if (!currentSession) { showToast('Error', 'No active call', 'error'); closeTransferModal(); return; }
+
+        showToast('Transferring', `Ringing ${target}...`, 'info');
+        closeTransferModal();
+
+        // The agent's own SIP session is left completely alone here -- Asterisk itself rings
+        // the target as a separate leg server-side and only swaps the customer onto it (via
+        // AMI Bridge) once/if that target actually answers. On success it hangs up this
+        // session's Asterisk-side channel directly, which JsSIP reports here as a normal
+        // 'ended' -- no explicit hangup() call needed on our end for that case. On failure
+        // nothing was ever touched, so the call with the customer just continues as-is.
+        fetch('{% url "user_transfer" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: `target=${encodeURIComponent(target)}`,
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                showToast('Transferred', `${target} answered — call transferred`, 'success');
+            } else if (data.reason === 'no_active_call') {
+                showToast('Transfer Failed', 'No active call to transfer', 'error');
+            } else if (data.reason === 'customer_gone') {
+                showToast('Transfer Failed', 'Caller already hung up', 'warning');
+            } else if (data.reason === 'no_route') {
+                showToast('Transfer Failed', 'No outbound route configured for this number', 'error');
+            } else {
+                showToast('Transfer Failed', `${target} didn't answer — call stays with you`, 'warning');
+            }
+        })
+        .catch(() => showToast('Transfer Failed', 'Could not transfer call', 'error'));
+    }
+
+    function openConferenceModal() {
+        if (!currentSession) { showToast('Error', 'No active call for conference', 'error'); return; }
+        if (!isCallConnected) return;
+        document.getElementById('conferenceModal').style.display = 'flex';
+        document.getElementById('conferenceNumberInput').value = '';
+    }
+    function closeConferenceModal() { document.getElementById('conferenceModal').style.display = 'none'; }
+    function showConferenceActions() {
+        const target = document.getElementById('conferenceNumberInput').value.trim();
+        if (!target) { showToast('Error', 'Please enter participant number', 'error'); return; }
+        if (!currentSession) { showToast('Error', 'No active call', 'error'); closeConferenceModal(); return; }
+        try {
+            const newSession = ua.call(`sip:${target}@${SERVER_IP}`, { mediaConstraints: { audio: true, video: false }, pcConfig: getPcConfig() });
+            forceAttachAudioToSession(newSession);
+            newSession.on('confirmed', () => showToast('Conference', 'Participant added to conference', 'success'));
+            newSession.on('failed',    () => showToast('Error', 'Failed to add participant', 'error'));
+            closeConferenceModal();
+        } catch(e) { showToast('Error', 'Cannot start conference', 'error'); }
+    }
+
+    function addNumber(n) { if (dialInput) dialInput.value += n; }
+    function backspace()  { if (dialInput) dialInput.value = dialInput.value.slice(0, -1); }
+
+    function getCsrfToken() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? match[1] : '';
+    }
+
+    function toggleStatus() {
+        if (currentSession) return;
+        const isPaused = !statusToggle.checked;
+        statusText.innerText = statusToggle.checked ? 'Ready' : 'Paused';
+
+        fetch('{% url "toggle_pause" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCsrfToken(),
+            },
+            body: `paused=${isPaused}`
+        })
+        .then(res => res.json())
+        .then(() => {
+            showToast('Status Update', isPaused ? 'Paused - calls disabled' : 'Ready to take calls', 'info');
+        })
+        .catch(() => {
+            showToast('Error', 'Could not update status', 'error');
+        });
+    }
+
+    function initUA() {
+        if (!EXTENSION || !PASSWORD) {
+            updateConnectionStatus(false);
+            if (topStatus) topStatus.innerText = 'Not ready';
+            if (statusText) statusText.innerText = 'Waiting for credentials';
+            showToast('Not Ready', 'WebRTC credentials are missing for this user', 'warning');
+            return false;
+        }
+
+        JsSIP.debug.disable('JsSIP:*');
+        const socket = new JsSIP.WebSocketInterface(WS_URL);
+        ua = new JsSIP.UA({
+            sockets            : [socket],
+            uri                : `sip:${EXTENSION}@${SERVER_IP}`,
+            password           : PASSWORD,
+            display_name       : 'WebUser',
+            register           : true,
+            register_expires   : 300,
+            session_timers     : false,
+            use_preloaded_route: false,
+            hack_ip_in_contact : true,
+            pcConfig           : getPcConfig()
+        });
+        ua.on('connected',          () => updateConnectionStatus(true));
+        ua.on('disconnected',       () => updateConnectionStatus(false));
+        ua.on('registered',         () => updateConnectionStatus(true));
+        ua.on('unregistered',       () => updateConnectionStatus(false));
+        ua.on('registrationFailed', () => updateConnectionStatus(false));
+        ua.on('newRTCSession', (data) => {
+            const session = data.session;
+            forceAttachAudioToSession(session);
+            if (session.direction === 'incoming') onIncomingCall(session);
+        });
+        ua.start();
+        return true;
+    }
+
+    function startHealthCheck() {
+        healthInterval = setInterval(() => {
+            if (ua && !ua.isConnected()) {
+                updateConnectionStatus(false);
+                ua.stop();
+                setTimeout(initUA, 2000);
+            }
+        }, 30000);
+    }
+
+    function initDOM() {
+        remoteAudio      = document.getElementById('remoteAudio');
+        ringtone         = document.getElementById('ringtone');
+        dialerScreen     = document.getElementById('dialerScreen');
+        callScreen       = document.getElementById('callScreen');
+        incomingScreen   = document.getElementById('incomingScreen');
+        dialInput        = document.getElementById('dialedNumber');
+        callNumberEl     = document.getElementById('callNumber');
+        callTimerEl      = document.getElementById('callTimer');
+        topIndicator     = document.getElementById('topStatusIndicator');
+        topStatus        = document.getElementById('topConnectionStatus');
+        statusToggle     = document.getElementById('statusToggle');
+        statusText       = document.getElementById('statusText');
+        incomingNumberEl = document.getElementById('incomingNumber');
+
+        callScreen.style.display = 'none';
+        statusText.innerText     = statusToggle.checked ? 'Ready' : 'Paused';
+        ringtone.load();
+        updateClock();
+        setInterval(updateClock, 1000);
+        showDialer();
+
+        (async function requestMic() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(t => t.stop());
+            } catch(e) {
+                showToast('Permission Required', 'Microphone access required for calling', 'warning');
+            }
+        })();
+    }
+
+    function dismissBanner() {
+        const banner = document.getElementById('notifBanner');
+        if (!banner) return;
+        clearTimeout(window._bannerTimer);
+        banner.style.transition    = 'transform 0.3s ease-in, opacity 0.3s ease-in';
+        banner.style.transform     = 'translateY(-60px)';
+        banner.style.opacity       = '0';
+        banner.style.pointerEvents = 'none';
+    }
+
+    function loadJsSIP(callback) {
+        if (window.JsSIP) { callback(); return; }
+        const s   = document.createElement('script');
+        s.src     = 'https://cdn.jsdelivr.net/npm/jssip@latest/dist/jssip.min.js';
+        s.onload  = callback;
+        s.onerror = () => { if (topStatus) topStatus.innerText = 'JsSIP load failed'; };
+        document.head.appendChild(s);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initDOM();
+        loadJsSIP(() => {
+            if (initUA()) {
+                startHealthCheck();
+            }
+        });
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (healthInterval) clearInterval(healthInterval);
+        if (ua) ua.stop();
+    });
+
+    window.makeCall              = makeCall;
+    window.hangup                = hangup;
+    window.acceptIncomingCall    = acceptIncomingCall;
+    window.rejectIncomingCall    = rejectIncomingCall;
+    window.addNumber             = addNumber;
+    window.backspace             = backspace;
+    window.toggleStatus          = toggleStatus;
+    window.toggleMute            = toggleMute;
+    window.toggleHold            = toggleHold;
+    window.toggleSpeaker         = toggleSpeaker;
+    window.toggleRecording       = toggleRecording;
+    window.openTransferModal     = openTransferModal;
+    window.closeTransferModal    = closeTransferModal;
+    window.confirmTransfer       = confirmTransfer;
+    window.openConferenceModal   = openConferenceModal;
+    window.closeConferenceModal  = closeConferenceModal;
+    window.showConferenceActions = showConferenceActions;
+    window.dismissBanner         = dismissBanner;
+</script>

@@ -1,0 +1,365 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}Users{% endblock %}
+
+{% block settings_content %}
+<section id="settings-users" class="settings-tab">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-800">Users</h2>
+            <p class="text-[11px] text-gray-500 mt-0.5">Create and manage user accounts</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <!-- Search box -->
+            <div class="relative w-full sm:w-56">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[11px]"></i>
+                <input type="text" id="userSearchInput"
+                    placeholder="Search users..."
+                    class="w-full pl-8 pr-3 py-1.5 text-[11px] border border-slate-200 rounded-full bg-white focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 placeholder:text-slate-400">
+            </div>
+
+            <!-- Compact inline stats -->
+            <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fas fa-users text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ total_users }}</span> Total
+                </span>
+                <span class="w-px h-3 bg-slate-200"></span>
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-circle text-green-500 text-[6px]"></i>
+                    <span class="font-bold text-slate-800">{{ active_users }}</span> Active
+                </span>
+                <span class="w-px h-3 bg-slate-200"></span>
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-circle text-slate-300 text-[6px]"></i>
+                    <span class="font-bold text-slate-800">{{ inactive_users }}</span> Inactive
+                </span>
+            </div>
+
+            <button id="toggleUserFormBtn"
+                    class="w-[110px] justify-center px-2 py-1.5 {% if form.errors %}bg-red-600 hover:bg-red-700{% else %}bg-indigo-600 hover:bg-indigo-700{% endif %} text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+                <i id="toggleIcon" class="fas {% if form.errors %}fa-times{% else %}fa-plus{% endif %} text-[10px]"></i>
+                <span id="toggleText">{% if form.errors %}Cancel{% else %}Create User{% endif %}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toggleable form container -->
+    <div id="userFormContainer"
+         data-has-errors="{% if form.errors %}true{% else %}false{% endif %}"
+         class="grid {% if form.errors %}grid-rows-[1fr] opacity-100{% else %}grid-rows-[0fr] opacity-0{% endif %} transition-all duration-300 ease-in-out overflow-hidden">
+        <div class="min-h-0 overflow-hidden">
+            <form method="post" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+                {% csrf_token %}
+                <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fas fa-user-plus text-[10px]"></i> Create User
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    <!-- Full Name -->
+                    <div>
+                        <label for="{{ form.full_name.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Full Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.full_name }}
+                        </div>
+                        {% if form.full_name.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.full_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Username -->
+                    <div>
+                        <label for="{{ form.username.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Username</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-at text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.username }}
+                        </div>
+                        {% if form.username.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Email</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-envelope text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.email }}
+                        </div>
+                        {% if form.email.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label for="{{ form.password.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.password }}
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <button type="button" id="toggleCreatePassword" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                                    <i class="fas fa-eye text-sm" id="eyeIconCreate"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% if form.password.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.password.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Phone Type -->
+                    <div>
+                        <label for="{{ form.phone_type.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Phone Type</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-phone text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.phone_type }}
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <!-- Role -->
+                    <div>
+                        <label for="{{ form.role.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Role</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user-shield text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.role }}
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Save User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users table -->
+    <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-100 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Name</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Username</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Email</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Password</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Role</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Extension</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Phone Type</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Joined</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Status</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody" class="divide-y divide-slate-200 text-[12px]">
+                    {% for u in users %}
+                    {% with endpoint=u.pjsip_endpoints.first %}
+                    <tr class="user-row bg-white" data-search="{{ u.full_name|default:u.username|lower }} {{ u.username|lower }} {{ u.email|lower }} {{ endpoint.id }}">
+                        <td class="px-4 py-2 font-semibold text-slate-800">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-semibold shrink-0">{{ u.full_name|default:u.username|first|upper }}</div>
+                                {{ u.full_name|default:u.username }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-2 text-slate-500">{{ u.username }}</td>
+                        <td class="px-4 py-2 text-slate-500">{{ u.email|default:"—" }}</td>
+                        <td class="px-4 py-2 text-slate-500">
+                            <div class="flex items-center gap-2">
+                                <span class="password-mask font-mono text-[11px] tracking-widest">••••••••</span>
+                                <span class="password-real font-mono text-[11px] hidden">{{ u.plain_password|default:"—" }}</span>
+                                <button type="button" class="password-toggle-btn text-slate-400 hover:text-slate-600">
+                                    <i class="fas fa-eye text-[10px]"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-0.5 text-[9px] font-bold rounded-full
+                                {% if u.role == 'admin' %}bg-indigo-100 text-indigo-700
+                                {% elif u.role == 'supervisor' %}bg-purple-100 text-purple-700
+                                {% else %}bg-slate-200 text-slate-700{% endif %}">
+                                {{ u.get_role_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2 text-slate-500 font-mono text-[11px]">
+                            {% if endpoint %}
+                                <span class="inline-flex items-center gap-1.5">
+                                    {{ endpoint.id }}
+                                    {% if endpoint.id in registered_extensions %}
+                                        <i class="fa-solid fa-circle text-green-500 text-[7px]" title="Registered — softphone is online"></i>
+                                    {% else %}
+                                        <i class="fa-solid fa-circle text-slate-300 text-[7px]" title="Not registered — softphone is offline"></i>
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2">
+                            {% if endpoint.transport == 'transport-wss' %}
+                                <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-medium">WebRTC</span>
+                            {% elif endpoint %}
+                                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-medium">Softphone</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2 text-slate-400 text-[10px] whitespace-nowrap">{{ u.date_joined|date:DATETIME_FORMAT }}</td>
+                        <td class="px-4 py-2">
+                            <form method="post" action="{% url 'admin_settings_users_toggle' u.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="flex items-center gap-2">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full
+                                        {% if not u.is_active %}text-slate-400 hover:text-green-600 hover:bg-green-50{% else %}text-green-600 hover:text-slate-500 hover:bg-slate-100{% endif %}"
+                                        title="{% if not u.is_active %}Activate user{% else %}Deactivate user{% endif %}">
+                                        <i class="fas {% if not u.is_active %}fa-toggle-off{% else %}fa-toggle-on{% endif %} text-sm"></i>
+                                    </span>
+                                    <span class="text-[10px] font-semibold {% if not u.is_active %}text-slate-400{% else %}text-green-600{% endif %}">
+                                        {% if not u.is_active %}Inactive{% else %}Active{% endif %}
+                                    </span>
+                                </button>
+                            </form>
+                        </td>
+                        <td class="px-4 py-2 text-right">
+                            <form method="post" action="{% url 'admin_settings_users_delete' u.id %}" class="inline delete-form" onsubmit="return confirm('Delete {{ u.full_name|default:u.username }}? This also removes their extension.');">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash text-[11px]"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr id="emptyRow">
+                        <td colspan="10" class="px-4 py-4 text-center">
+                            <div class="flex flex-col items-center gap-1.5">
+                                <i class="fas fa-user-slash text-slate-300 text-xl"></i>
+                                <p class="text-slate-500 text-[11px] font-medium">No users created yet</p>
+                                <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">Create User</span> to add one</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr id="noResultsRow" class="hidden">
+                        <td colspan="10" class="px-4 py-6 text-center">
+                            <p class="text-slate-400 text-[11px]">No matching users found</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<script>
+  (function() {
+    const toggleBtn = document.getElementById('toggleUserFormBtn');
+    const formContainer = document.getElementById('userFormContainer');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+
+    let isOpen = formContainer.dataset.hasErrors === 'true';
+
+    toggleBtn.addEventListener('click', function() {
+      isOpen = !isOpen;
+
+      if (isOpen) {
+        formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+        formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+        toggleIcon.classList.remove('fa-plus');
+        toggleIcon.classList.add('fa-times');
+        toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+        toggleText.textContent = 'Cancel';
+      } else {
+        formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+        formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+        toggleIcon.classList.remove('fa-times');
+        toggleIcon.classList.add('fa-plus');
+        toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleText.textContent = 'Create User';
+      }
+    });
+  })();
+
+  (function() {
+    const toggleBtn = document.getElementById('toggleCreatePassword');
+    if (!toggleBtn) return;
+    toggleBtn.addEventListener('click', function() {
+      const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+      const eyeIcon = document.getElementById('eyeIconCreate');
+      if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+      } else {
+        passwordField.type = 'password';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
+      }
+    });
+  })();
+
+  (function() {
+    document.querySelectorAll('.password-toggle-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const wrapper = btn.closest('div');
+        const mask = wrapper.querySelector('.password-mask');
+        const real = wrapper.querySelector('.password-real');
+        const icon = btn.querySelector('i');
+        const isHidden = real.classList.contains('hidden');
+
+        if (isHidden) {
+          mask.classList.add('hidden');
+          real.classList.remove('hidden');
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          mask.classList.remove('hidden');
+          real.classList.add('hidden');
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      });
+    });
+  })();
+
+  (function() {
+    const searchInput = document.getElementById('userSearchInput');
+    const rows = document.querySelectorAll('.user-row');
+    const noResultsRow = document.getElementById('noResultsRow');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim().toLowerCase();
+      let visibleCount = 0;
+
+      rows.forEach(function(row) {
+        const match = row.dataset.search.toLowerCase().includes(query);
+        row.classList.toggle('hidden', !match);
+        if (match) visibleCount++;
+      });
+
+      if (noResultsRow) {
+        noResultsRow.classList.toggle('hidden', visibleCount !== 0);
+      }
+    });
+  })();
+</script>
+{% endblock %}

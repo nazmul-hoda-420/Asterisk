@@ -1,0 +1,102 @@
+<div class="flex items-center justify-between mb-5">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">CDR</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Your call details record</p>
+    </div>
+    <form method="get" action="{% url 'user_dashboard' %}" class="flex items-end gap-2">
+        <input type="hidden" name="tab" value="my_calls">
+        <div>
+            <label class="block text-[10px] font-semibold text-slate-600 mb-1">From</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                </div>
+                <input type="date" name="mc_date_from" value="{{ mc_date_from }}"
+                       class="pl-9 block w-[150px] px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+            </div>
+        </div>
+        <div>
+            <label class="block text-[10px] font-semibold text-slate-600 mb-1">To</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                </div>
+                <input type="date" name="mc_date_to" value="{{ mc_date_to }}"
+                       class="pl-9 block w-[150px] px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+            </div>
+        </div>
+        <div class="relative w-48">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-search text-gray-400 text-sm"></i>
+            </div>
+            <input type="text" name="mc_search" value="{{ mc_search }}" placeholder="Search number..."
+                   class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+        </div>
+        <button type="submit" class="px-3 py-1.5 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition">
+            Filter
+        </button>
+        <a href="{% url 'user_dashboard' %}?tab=my_calls" class="px-3 py-1.5 rounded border border-gray-300 text-gray-600 text-xs hover:bg-gray-50 transition">
+            Reset
+        </a>
+    </form>
+</div>
+
+<div class="bg-white rounded-md shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full text-xs">
+        <thead>
+            <tr class="bg-slate-100 border-b border-slate-200 text-slate-600 text-left">
+                <th class="font-semibold px-4 py-2">Number</th>
+                <th class="font-semibold px-4 py-2">Direction</th>
+                <th class="font-semibold px-4 py-2">Duration</th>
+                <th class="font-semibold px-4 py-2">Status</th>
+                <th class="font-semibold px-4 py-2">Time</th>
+            </tr>
+        </thead>
+        <tbody class="text-gray-700 divide-y divide-gray-50">
+            {% for call in my_calls_rows %}
+            <tr>
+                <td class="px-4 py-2.5 font-medium text-gray-800 font-mono">{{ call.number|default:"—" }}</td>
+                <td class="px-4 py-2.5">
+                    {% if call.direction == 'Outbound' %}
+                    <i class="fa-solid fa-arrow-up text-indigo-500 mr-1"></i> Outbound
+                    {% elif call.direction == 'Inbound' %}
+                    <i class="fa-solid fa-arrow-down text-green-500 mr-1"></i> Inbound
+                    {% else %}
+                    {{ call.direction }}
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5">{{ call.duration_display }}</td>
+                <td class="px-4 py-2.5">
+                    {% if call.disposition == 'ANSWERED' %}
+                    <span class="px-2 py-0.5 rounded-full bg-green-50 text-green-600 text-[10px] font-medium">Answered</span>
+                    {% elif call.disposition == 'NO ANSWER' or call.disposition == 'BUSY' %}
+                    <span class="px-2 py-0.5 rounded-full bg-yellow-50 text-yellow-600 text-[10px] font-medium">{{ call.disposition|title }}</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full bg-red-50 text-red-500 text-[10px] font-medium">{{ call.disposition|default:"—"|title }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2.5 text-gray-500">{{ call.start|date:DATETIME_FORMAT }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-gray-400 text-[11px]">No calls found</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-[11px] text-gray-500">
+        <span>Showing {{ my_calls_page.start_index }}&ndash;{{ my_calls_page.end_index }} of {{ my_calls_page.paginator.count }} calls</span>
+        <div class="flex items-center gap-1">
+            {% if my_calls_page.has_previous %}
+            <a href="?{% if mc_querystring %}{{ mc_querystring }}&{% endif %}tab=my_calls&mc_page={{ my_calls_page.previous_page_number }}" class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50">Prev</a>
+            {% else %}
+            <button class="px-2 py-1 rounded border border-gray-200 text-gray-400" disabled>Prev</button>
+            {% endif %}
+            {% if my_calls_page.has_next %}
+            <a href="?{% if mc_querystring %}{{ mc_querystring }}&{% endif %}tab=my_calls&mc_page={{ my_calls_page.next_page_number }}" class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-gray-50">Next</a>
+            {% else %}
+            <button class="px-2 py-1 rounded border border-gray-200 text-gray-400" disabled>Next</button>
+            {% endif %}
+        </div>
+    </div>
+</div>

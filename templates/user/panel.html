@@ -1,0 +1,24 @@
+{% extends 'user/base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<section id="tab-dashboard" class="tab-content block">
+    {% include 'user/dashboard.html' %}
+</section>
+
+<section id="tab-my_calls" class="tab-content hidden">
+    {% include 'user/cdr.html' %}
+</section>
+
+<section id="tab-crm" class="tab-content hidden">
+    {% include 'user/crm.html' %}
+</section>
+
+<section id="tab-whatsapp" class="tab-content hidden">
+    {% include 'user/whatsapp.html' %}
+</section>
+
+<section id="tab-facebook" class="tab-content hidden">
+    {% include 'user/facebook.html' %}
+</section>
+{% endblock %}

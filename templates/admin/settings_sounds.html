@@ -1,0 +1,392 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}Sounds{% endblock %}
+
+{% block settings_content %}
+<div class="">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-800">Sound Library</h2>
+            <p class="text-[11px] text-gray-500 mt-0.5">Manage audio files for prompts and Music on Hold</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-waveform-lines text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ sounds|length }}</span> Sounds
+                </span>
+                <span class="w-px h-3 bg-slate-200"></span>
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-music text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ moh_classes|length }}</span> MOH
+                </span>
+            </div>
+
+            <button id="toggleUploadBtn" type="button"
+                class="w-[120px] justify-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+                <i id="toggleUploadIcon" class="fas fa-upload text-[10px]"></i>
+                <span id="toggleUploadText">Upload</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============ Upload panel (collapsible) ============ -->
+    <div id="uploadPanelWrapper" class="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-in-out overflow-hidden">
+        <div class="min-h-0 overflow-hidden">
+            <div class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+                <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fas fa-upload text-[10px]"></i> Upload Audio
+                </h3>
+
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" id="uploadAction" value="upload">
+                    <input type="hidden" name="category" id="uploadCategory" value="other">
+
+                    <!-- Sound / Prompt: Type + single file, evenly split -->
+                    <div id="soundFields" class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Type</label>
+                            <select id="uploadKindSelect" class="appearance-none w-full h-8 px-2 border border-slate-300 rounded bg-white text-xs focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100">
+                                <option value="welcome">Welcome</option>
+                                <option value="after_hours">After Hours</option>
+                                <option value="other" selected>Other</option>
+                                <option value="moh">Music on Hold</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Audio File</label>
+                            <input type="file" name="file" id="soundFileInput" accept="audio/*"
+                                class="w-full h-8 text-xs border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700 file:text-[10px]">
+                        </div>
+                    </div>
+
+                    <!-- Music on Hold: Type + Class Name + Audio Files -->
+                    <div id="mohFields" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Type</label>
+                            <select id="uploadKindSelectMoh" class="appearance-none w-full h-8 px-2 border border-slate-300 rounded bg-white text-xs focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100">
+                                <option value="welcome">Welcome</option>
+                                <option value="after_hours">After Hours</option>
+                                <option value="other">Other</option>
+                                <option value="moh" selected>Music on Hold</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Class Name</label>
+                            <input type="text" name="class_name" id="mohClassNameInput" list="mohClassNameList" placeholder="Sales Team"
+                                class="w-full h-8 px-2 border border-slate-300 rounded bg-white text-xs placeholder:text-slate-400 focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100">
+                            <datalist id="mohClassNameList">
+                                {% for moh in moh_classes %}
+                                <option value="{{ moh.name }}">
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Audio Files</label>
+                            <input type="file" name="file" id="mohFileInput" accept="audio/*" multiple
+                                class="w-full h-8 text-xs border border-slate-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:bg-indigo-50 file:text-indigo-700 file:text-[10px]">
+                        </div>
+                    </div>
+                    <ul id="mohFilePreviewList" class="mt-2 space-y-1 max-w-xs"></ul>
+                    <p class="mt-1.5 text-[10px] text-slate-400">Any format — converted automatically. For Music on Hold, an existing class name adds tracks to it; a new name creates the class. Selected multiple tracks? Drag to set the play order before uploading.</p>
+
+                    <div class="flex justify-end mt-3">
+                        <button type="submit" id="uploadSubmitBtn" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ SECTION 1: Prompts / Sounds ============ -->
+    <div class="mb-8">
+        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <i class="fa-solid fa-microphone text-[10px]"></i> Sounds / Prompts
+        </h3>
+        <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-100 border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Name</th>
+                            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Category</th>
+                            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Preview</th>
+                            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 text-[11px]">
+                        {% for sound in sounds %}
+                        <tr class="bg-white hover:bg-slate-50">
+                            <td class="px-4 py-2 text-[12px] font-medium text-slate-700">{{ sound.name }}</td>
+                            <td class="px-4 py-2">
+                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-medium
+                                    {% if sound.category == 'welcome' %} bg-sky-50 text-sky-700
+                                    {% elif sound.category == 'after_hours' %} bg-amber-50 text-amber-700
+                                    {% else %} bg-slate-100 text-slate-600 {% endif %}">
+                                    {{ sound.get_category_display }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-2">
+                                <div class="audio-player inline-flex items-center gap-1.5">
+                                    <button type="button" class="audio-toggle w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-colors">
+                                        <i class="fas fa-play text-[11px]"></i>
+                                    </button>
+                                    <span class="audio-time text-[9px] text-slate-800 font-medium tabular-nums shrink-0">0:00/0:00</span>
+                                    <audio class="hidden" preload="none">
+                                        <source src="{% url 'admin_settings_sound_preview' sound.filename %}" type="audio/wav">
+                                    </audio>
+                                </div>
+                            </td>
+                            <td class="px-4 py-2 text-right">
+                                <form method="post" onsubmit="return confirm('Delete this sound?');" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="filename" value="{{ sound.filename }}">
+                                    <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 text-[10px] font-semibold transition-colors">
+                                        <i class="fas fa-trash text-[9px]"></i> Delete
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="px-4 py-4 text-center">
+                                <div class="flex flex-col items-center gap-1.5">
+                                    <i class="fas fa-waveform-lines text-slate-300 text-xl"></i>
+                                    <p class="text-slate-500 text-[11px] font-medium">No sounds uploaded yet</p>
+                                    <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">Upload</span> above</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ SECTION 2: Music on Hold ============ -->
+    <div class="mb-3 border-t border-slate-200 pt-6">
+        <h3 class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+            <i class="fa-solid fa-music text-[10px]"></i> Music on Hold Classes
+        </h3>
+        <p class="text-[11px] text-slate-400 mb-4">Set distinct hold music groups per Group (Settings &rarr; Groups)</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for moh in moh_classes %}
+            <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                <div class="px-3 py-2 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between gap-2">
+                    <div class="min-w-0">
+                        <div class="text-[13px] font-semibold text-slate-700 truncate">{{ moh.name }}</div>
+                        {% if moh.description %}
+                        <div class="text-[10px] text-slate-400 truncate">{{ moh.description }}</div>
+                        {% endif %}
+                    </div>
+                    <form method="post" onsubmit="return confirm('Delete the entire MOH class and all its tracks?');" class="inline shrink-0">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_moh_class">
+                        <input type="hidden" name="name" value="{{ moh.name }}">
+                        <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-50 text-red-500 hover:bg-red-100 text-[10px] font-semibold transition-colors">
+                            <i class="fas fa-trash text-[9px]"></i> Delete Class
+                        </button>
+                    </form>
+                </div>
+                <div class="p-3 flex flex-col gap-1.5">
+                    {% for filename in moh.files %}
+                    <div class="flex items-center justify-between gap-2 pl-5 relative
+                        before:content-[''] before:absolute before:left-2 before:top-0 {% if forloop.last %}before:h-1/2{% else %}before:bottom-0{% endif %} before:w-px before:bg-gray-300
+                        after:content-[''] after:absolute after:left-2 after:top-1/2 after:w-2.5 after:h-px after:bg-gray-300">
+                        <span class="font-mono text-[11px] text-slate-700 truncate">{{ filename }}</span>
+                        <div class="audio-player inline-flex items-center gap-1.5 shrink-0">
+                            <button type="button" class="audio-toggle w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 flex items-center justify-center shrink-0 transition-colors">
+                                <i class="fas fa-play text-[10px]"></i>
+                            </button>
+                            <span class="audio-time text-[9px] text-slate-800 font-medium tabular-nums shrink-0">0:00/0:00</span>
+                            <audio class="hidden" preload="none">
+                                <source src="{% url 'admin_settings_moh_track_preview' moh.name filename %}" type="audio/wav">
+                            </audio>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-slate-400 text-[11px]">No tracks yet — use the Upload panel above</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full px-4 py-6 text-center bg-white rounded-md border border-slate-200 shadow-sm">
+                <p class="text-slate-500 text-[11px] font-medium">No MOH class created yet</p>
+                <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">Upload</span> above, choose Music on Hold, and give it a class name</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+
+</div>
+
+<script>
+(function() {
+    function setupToggle(btnId, iconId, textId, panelId, openLabel, activeClasses, inactiveClasses) {
+        const btn = document.getElementById(btnId);
+        const icon = document.getElementById(iconId);
+        const text = document.getElementById(textId);
+        const panel = document.getElementById(panelId);
+        let open = false;
+        btn.addEventListener('click', function() {
+            open = !open;
+            if (open) {
+                panel.classList.remove('grid-rows-[0fr]', 'opacity-0');
+                panel.classList.add('grid-rows-[1fr]', 'opacity-100');
+                icon.classList.remove(...openLabel.iconOff);
+                icon.classList.add(...openLabel.iconOn);
+                text.textContent = 'Cancel';
+                btn.classList.remove(...inactiveClasses);
+                btn.classList.add(...activeClasses);
+            } else {
+                panel.classList.remove('grid-rows-[1fr]', 'opacity-100');
+                panel.classList.add('grid-rows-[0fr]', 'opacity-0');
+                icon.classList.remove(...openLabel.iconOn);
+                icon.classList.add(...openLabel.iconOff);
+                text.textContent = openLabel.closedText;
+                btn.classList.remove(...activeClasses);
+                btn.classList.add(...inactiveClasses);
+            }
+        });
+    }
+
+    setupToggle('toggleUploadBtn', 'toggleUploadIcon', 'toggleUploadText', 'uploadPanelWrapper',
+        { iconOff: ['fa-upload'], iconOn: ['fa-times'], closedText: 'Upload' },
+        ['bg-red-600', 'hover:bg-red-700'],
+        ['bg-indigo-600', 'hover:bg-indigo-700']);
+
+    // ---- Upload kind dropdown: welcome / after_hours / other / moh ----
+    const kindSelect = document.getElementById('uploadKindSelect');
+    const kindSelectMoh = document.getElementById('uploadKindSelectMoh');
+    const soundFields = document.getElementById('soundFields');
+    const mohFields = document.getElementById('mohFields');
+    const uploadAction = document.getElementById('uploadAction');
+    const uploadCategory = document.getElementById('uploadCategory');
+    const soundFileInput = document.getElementById('soundFileInput');
+    const mohFileInput = document.getElementById('mohFileInput');
+    const mohClassNameInput = document.getElementById('mohClassNameInput');
+
+    function applyKind(kind) {
+        kindSelect.value = kind;
+        kindSelectMoh.value = kind;
+        if (kind === 'moh') {
+            soundFields.classList.add('hidden');
+            mohFields.classList.remove('hidden');
+            uploadAction.value = 'upload_moh_sound';
+            if (soundFileInput) soundFileInput.required = false;
+            if (mohFileInput) mohFileInput.required = true;
+            if (mohClassNameInput) mohClassNameInput.required = true;
+        } else {
+            soundFields.classList.remove('hidden');
+            mohFields.classList.add('hidden');
+            uploadAction.value = 'upload';
+            uploadCategory.value = kind;
+            if (soundFileInput) soundFileInput.required = true;
+            if (mohFileInput) mohFileInput.required = false;
+            if (mohClassNameInput) mohClassNameInput.required = false;
+        }
+    }
+
+    kindSelect.addEventListener('change', () => applyKind(kindSelect.value));
+    kindSelectMoh.addEventListener('change', () => applyKind(kindSelectMoh.value));
+    applyKind(kindSelect.value);
+
+    // ---- MOH multi-file upload: drag to set play order before submitting ----
+    const mohPreviewList = document.getElementById('mohFilePreviewList');
+    let mohOrderedFiles = [];
+
+    function renderMohPreview() {
+        mohPreviewList.innerHTML = '';
+        mohOrderedFiles.forEach((file, index) => {
+            const li = document.createElement('li');
+            li.draggable = true;
+            li.dataset.index = index;
+            li.className = 'flex items-center gap-2 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[11px] text-slate-700 cursor-move';
+            li.innerHTML = '<i class="fas fa-grip-lines text-slate-300 text-[10px]"></i>' +
+                '<span class="w-5 text-slate-400 font-mono">' + (index + 1) + '.</span>' +
+                '<span class="truncate flex-1">' + file.name + '</span>';
+            li.addEventListener('dragstart', function() {
+                li.classList.add('opacity-40');
+            });
+            li.addEventListener('dragend', function() {
+                li.classList.remove('opacity-40');
+                rebuildMohFileInput();
+            });
+            li.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                const dragging = mohPreviewList.querySelector('.opacity-40');
+                if (!dragging || dragging === li) return;
+                const rect = li.getBoundingClientRect();
+                const before = (e.clientY - rect.top) < rect.height / 2;
+                mohPreviewList.insertBefore(dragging, before ? li : li.nextSibling);
+            });
+            mohPreviewList.appendChild(li);
+        });
+    }
+
+    function rebuildMohFileInput() {
+        mohOrderedFiles = Array.from(mohPreviewList.children).map(li => mohOrderedFiles[parseInt(li.dataset.index, 10)]);
+        const dt = new DataTransfer();
+        mohOrderedFiles.forEach(file => dt.items.add(file));
+        mohFileInput.files = dt.files;
+        renderMohPreview();
+    }
+
+    mohFileInput.addEventListener('change', function() {
+        mohOrderedFiles = Array.from(mohFileInput.files);
+        renderMohPreview();
+    });
+
+    // ---- Custom audio player (replaces native <audio controls>) ----
+    function formatTime(sec) {
+        if (!isFinite(sec) || sec < 0) return '0:00';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return m + ':' + String(s).padStart(2, '0');
+    }
+
+    document.querySelectorAll('.audio-player').forEach(function(player) {
+        const audio = player.querySelector('audio');
+        const btn = player.querySelector('.audio-toggle');
+        const icon = btn.querySelector('i');
+        const timeEl = player.querySelector('.audio-time');
+
+        function updateTime() {
+            timeEl.textContent = formatTime(audio.currentTime) + '/' + formatTime(audio.duration);
+        }
+
+        btn.addEventListener('click', function() {
+            if (audio.paused) {
+                document.querySelectorAll('.audio-player audio').forEach(function(a) {
+                    if (a !== audio && !a.paused) a.pause();
+                });
+                audio.play();
+            } else {
+                audio.pause();
+            }
+        });
+
+        audio.addEventListener('play', function() {
+            icon.classList.remove('fa-play');
+            icon.classList.add('fa-pause');
+        });
+        audio.addEventListener('pause', function() {
+            icon.classList.remove('fa-pause');
+            icon.classList.add('fa-play');
+        });
+        audio.addEventListener('ended', function() {
+            audio.currentTime = 0;
+            updateTime();
+        });
+        audio.addEventListener('loadedmetadata', updateTime);
+        audio.addEventListener('timeupdate', updateTime);
+    });
+})();
+</script>
+{% endblock %}

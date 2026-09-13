@@ -1,0 +1,242 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}Call Time{% endblock %}
+
+{% block settings_content %}
+<section id="settings-call-time" class="settings-tab">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-800">Call Time</h2>
+            <p class="text-[11px] text-gray-500 mt-0.5">Weekly office-hour schedules for queue routing</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fas fa-business-time text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ schedules|length }}</span> Schedules
+                </span>
+            </div>
+
+            <button type="button" id="toggleCtFormBtn"
+                    class="w-[130px] justify-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+                <i id="toggleCtIcon" class="fas fa-plus text-[10px]"></i>
+                <span id="toggleCtText">Create Schedule</span>
+            </button>
+        </div>
+    </div>
+
+    {% if messages %}
+    <div class="mb-4 space-y-1.5">
+        {% for message in messages %}
+        <div class="text-[11px] px-3 py-2 rounded-md {% if message.tags == 'error' %}bg-red-50 text-red-600{% else %}bg-emerald-50 text-emerald-600{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Toggleable Create/Edit form -->
+    <div id="ctFormContainer" class="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-in-out overflow-hidden">
+        <div class="min-h-0 overflow-hidden">
+            <form method="post" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="id" id="ctFormId" value="">
+                <h3 id="ctFormTitle" class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fas fa-business-time text-[10px]"></i> Create Schedule
+                </h3>
+
+                <div class="max-w-xs mb-4">
+                    <label for="{{ form.name.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Schedule Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-signature text-gray-400 text-sm"></i>
+                        </div>
+                        {{ form.name }}
+                    </div>
+                    {% if form.name.errors %}<p class="text-red-500 text-[10px] mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div class="border border-dashed border-gray-200 rounded-md p-3 mb-3 flex flex-wrap items-end gap-3">
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-600 block mb-1">Apply to all &mdash; Start</label>
+                        <input type="time" id="ct_default_start" class="text-xs border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-semibold text-slate-600 block mb-1">End</label>
+                        <input type="time" id="ct_default_end" class="text-xs border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100">
+                    </div>
+                    <button type="button" id="ct_apply_default" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[11px] font-semibold rounded-sm">Apply to all days</button>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-3 items-start">
+                    <div class="bg-white rounded-md border border-slate-200 overflow-hidden flex-1 w-full">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-100 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Day</th>
+                                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Start</th>
+                                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">End</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200 text-[12px]">
+                                <tr><td class="px-4 py-1.5 text-slate-600 font-medium">Saturday</td><td class="px-4 py-1.5">{{ form.sat_start }}</td><td class="px-4 py-1.5">{{ form.sat_end }}</td></tr>
+                                <tr><td class="px-4 py-1.5 text-slate-600 font-medium">Sunday</td><td class="px-4 py-1.5">{{ form.sun_start }}</td><td class="px-4 py-1.5">{{ form.sun_end }}</td></tr>
+                                <tr><td class="px-4 py-1.5 text-slate-600 font-medium">Monday</td><td class="px-4 py-1.5">{{ form.mon_start }}</td><td class="px-4 py-1.5">{{ form.mon_end }}</td></tr>
+                                <tr><td class="px-4 py-1.5 text-slate-600 font-medium">Tuesday</td><td class="px-4 py-1.5">{{ form.tue_start }}</td><td class="px-4 py-1.5">{{ form.tue_end }}</td></tr>
+                                <tr><td class="px-4 py-1.5 text-slate-600 font-medium">Wednesday</td><td class="px-4 py-1.5">{{ form.wed_start }}</td><td class="px-4 py-1.5">{{ form.wed_end }}</td></tr>
+                                <tr><td class="px-4 py-1.5 text-slate-600 font-medium">Thursday</td><td class="px-4 py-1.5">{{ form.thu_start }}</td><td class="px-4 py-1.5">{{ form.thu_end }}</td></tr>
+                                <tr><td class="px-4 py-1.5 text-slate-600 font-medium">Friday</td><td class="px-4 py-1.5">{{ form.fri_start }}</td><td class="px-4 py-1.5">{{ form.fri_end }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="w-full lg:w-80 shrink-0 bg-emerald-100 border border-emerald-200 rounded-md p-3">
+                        <p class="text-[11px] font-bold text-black uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-info text-[10px]"></i> Notes
+                        </p>
+                        <ul class="space-y-1.5 text-[11px] text-black list-disc list-inside">
+                            <li>Off day: leave both Start and End empty for that day.</li>
+                            <li>Both filled = business hours for that day.</li>
+                            <li>Only one filled: form won't save until you fill or clear the other.</li>
+                            <li>"Apply to all days" fills every row — clear a day afterwards to make it a day off.</li>
+                            <li>Assign this schedule to a Group from its Call Time field to control Welcome / After Hours playback.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                    <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Save Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedules -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {% for schedule in schedules %}
+        <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-semibold shrink-0">
+                        <i class="fas fa-business-time"></i>
+                    </div>
+                    <span class="font-semibold text-slate-800 text-[12px]">{{ schedule.name }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    {{ schedule.edit_payload|json_script:schedule.dom_id }}
+                    <button type="button" class="edit-schedule-btn inline-flex items-center justify-center w-6 h-6 text-slate-400 hover:text-indigo-600" data-schedule-id="{{ schedule.id }}">
+                        <i class="fa-solid fa-pen text-[11px]"></i>
+                    </button>
+                    <form method="post" onsubmit="return confirm('Delete schedule \'{{ schedule.name }}\'?');" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="id" value="{{ schedule.id }}">
+                        <button type="submit" class="inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash text-[11px]"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-y-1.5 text-[11px] p-4">
+                {% for day in schedule.days %}
+                <div class="flex justify-between {% cycle 'pr-4' '' %}">
+                    <span class="text-slate-500">{{ day.label }}</span>
+                    {% if day.display %}
+                    <span class="font-mono text-slate-700">{{ day.display }}</span>
+                    {% else %}
+                    <span class="text-slate-300">Closed</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full px-4 py-6 text-center bg-white rounded-md border border-slate-200 shadow-sm">
+            <div class="flex flex-col items-center gap-1.5">
+                <i class="fas fa-business-time text-slate-300 text-xl"></i>
+                <p class="text-slate-500 text-[11px] font-medium">No schedules yet</p>
+                <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">Create Schedule</span> above</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</section>
+
+<script>
+    (function() {
+        const toggleBtn = document.getElementById('toggleCtFormBtn');
+        const formContainer = document.getElementById('ctFormContainer');
+        const toggleIcon = document.getElementById('toggleCtIcon');
+        const toggleText = document.getElementById('toggleCtText');
+        const formTitle = document.getElementById('ctFormTitle');
+        const formIdInput = document.getElementById('ctFormId');
+        const nameInput = document.querySelector('#ctFormContainer input[name="name"]');
+        let isOpen = false;
+
+        function openForm() {
+            isOpen = true;
+            formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+            formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+            toggleIcon.classList.remove('fa-plus');
+            toggleIcon.classList.add('fa-times');
+            toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            toggleText.textContent = 'Cancel';
+        }
+
+        function closeForm() {
+            isOpen = false;
+            formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+            formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+            toggleIcon.classList.remove('fa-times');
+            toggleIcon.classList.add('fa-plus');
+            toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+            toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            toggleText.textContent = 'Create Schedule';
+        }
+
+        function resetForm() {
+            formTitle.innerHTML = '<i class="fas fa-business-time text-[10px]"></i> Create Schedule';
+            formIdInput.value = '';
+            nameInput.value = '';
+            document.querySelectorAll('.ct-time').forEach(function(input) { input.value = ''; });
+        }
+
+        toggleBtn.addEventListener('click', function() {
+            if (isOpen) { closeForm(); } else { resetForm(); openForm(); }
+        });
+
+        document.querySelectorAll('.edit-schedule-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const payload = JSON.parse(document.getElementById('ct-data-' + btn.dataset.scheduleId).textContent);
+                formTitle.innerHTML = '<i class="fas fa-business-time text-[10px]"></i> Edit Schedule';
+                formIdInput.value = payload.id;
+                nameInput.value = payload.name;
+                ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri'].forEach(function(day) {
+                    document.getElementById('id_' + day + '_start').value = payload[day + '_start'];
+                    document.getElementById('id_' + day + '_end').value = payload[day + '_end'];
+                });
+                openForm();
+            });
+        });
+    })();
+
+    (function() {
+        const applyBtn = document.getElementById('ct_apply_default');
+        const start = document.getElementById('ct_default_start');
+        const end = document.getElementById('ct_default_end');
+        applyBtn.addEventListener('click', function() {
+            if (!start.value || !end.value) {
+                alert('Set default start and end times first.');
+                return;
+            }
+            document.querySelectorAll('.ct-time').forEach(function(input, i) {
+                input.value = (i % 2 === 0) ? start.value : end.value;
+            });
+        });
+    })();
+</script>
+{% endblock %}

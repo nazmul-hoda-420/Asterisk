@@ -1,0 +1,379 @@
+{% extends "admin/base.html" %}
+{% block title %}CDR{% endblock %}
+
+{% block content %}
+
+    <!-- Header Section -->
+    <div class="mb-6">
+        <div class="mb-3">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-sm font-semibold text-gray-800">CDR</h1>
+                    <p class="text-[11px] text-gray-500 mt-0.5">Call Detail Records — every call, one row each</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <form method="get" class="bg-white border border-gray-200 rounded-md p-3 flex flex-wrap gap-3 items-end">
+            <div class="w-[170px]">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">From</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                    </div>
+                    <input type="date" name="date_from" value="{{ filters.date_from }}"
+                           class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+                </div>
+            </div>
+            <div class="w-[170px]">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">To</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                    </div>
+                    <input type="date" name="date_to" value="{{ filters.date_to }}"
+                           class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+                </div>
+            </div>
+            <div class="flex-1 min-w-[180px]">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Search (Src/Dst)</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search text-gray-400 text-sm"></i>
+                    </div>
+                    <input type="text" name="search" value="{{ filters.search }}" placeholder="Number search..."
+                           class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-sm placeholder:text-[11px]">
+                </div>
+            </div>
+            <div class="w-[160px]">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Disposition</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-list text-gray-400 text-sm"></i>
+                    </div>
+                    <select name="disposition"
+                            class="appearance-none pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs bg-white pr-8">
+                        <option value="">All</option>
+                        <option value="ANSWERED" {% if filters.disposition == "ANSWERED" %}selected{% endif %}>Answered</option>
+                        <option value="BUSY" {% if filters.disposition == "BUSY" %}selected{% endif %}>Busy</option>
+                        <option value="NO ANSWER" {% if filters.disposition == "NO ANSWER" %}selected{% endif %}>No Answer</option>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="px-3 py-1.5 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition">
+                    Filter
+                </button>
+                <a href="{% url 'admin_cdr' %}"
+                   class="px-3 py-1.5 rounded border border-gray-300 text-gray-600 text-xs hover:bg-gray-50 transition">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Container -->
+    <div class="bg-white shadow rounded-md border border-gray-200 overflow-hidden">
+
+        <div class="overflow-x-auto overflow-y-hidden touch-pan-x">
+            <table class="w-full text-[11px] text-left text-gray-600 table-fixed min-w-[900px]">
+
+                <!-- Table Header -->
+                <thead class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10">
+                    <tr>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:9%;">SRC</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:9%;">DST</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:13%;">Start</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:13%;">Answer</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:13%;">End</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:7%;">Duration</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:8%;">BillSec</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:10%;">Disposition</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap text-center" style="width:6%;">Details</th>
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody class="divide-y divide-gray-100">
+                    {% for call in calls %}
+                        <tr class="hover:bg-blue-50/40 transition-colors">
+                            <td class="px-3 py-1 max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title="{{ call.src_ext }}">
+                                {% if call.src_name %}<span class="font-semibold text-gray-800">{{ call.src_name }}</span> <span class="text-gray-500">({{ call.src_ext }})</span>{% else %}<span class="font-semibold text-gray-800">{{ call.src_ext }}</span>{% endif %}
+                            </td>
+                            <td class="px-3 py-1 max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title="{{ call.dst_ext }}">
+                                {% if call.dst_name %}<span class="font-semibold text-gray-800">{{ call.dst_name }}</span> <span class="text-gray-500">({{ call.dst_ext }})</span>{% else %}{{ call.dst_ext }}{% endif %}
+                            </td>
+                            <td class="px-3 py-1 whitespace-nowrap">{{ call.start|date:DATETIME_FORMAT|default:"-" }}</td>
+                            <td class="px-3 py-1 whitespace-nowrap">{{ call.answer|date:DATETIME_FORMAT|default:"-" }}</td>
+                            <td class="px-3 py-1 whitespace-nowrap">{{ call.end_time|date:DATETIME_FORMAT|default:"-" }}</td>
+                            <td class="px-3 py-1 whitespace-nowrap">{{ call.duration }}s</td>
+                            <td class="px-3 py-1 font-semibold text-blue-600 whitespace-nowrap">{{ call.billsec }}s</td>
+                            <td class="px-3 py-1 whitespace-nowrap">
+                                {% if call.disposition == "ANSWERED" %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-emerald-100 text-emerald-700 font-semibold whitespace-nowrap">ANSWERED</span>
+                                {% elif call.disposition == "BUSY" %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-rose-100 text-rose-600 font-semibold whitespace-nowrap">BUSY</span>
+                                {% elif call.disposition == "NO ANSWER" %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-amber-100 text-amber-700 font-semibold whitespace-nowrap">NO ANSWER</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-gray-100 text-gray-600 whitespace-nowrap">{{ call.disposition }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-1 whitespace-nowrap text-center">
+                                <button type="button" title="Details"
+                                        class="details-toggle-btn inline-flex items-center justify-center w-6 h-6 rounded-full border border-blue-300 text-blue-600 hover:bg-blue-50 transition-colors"
+                                        data-target="cdr-row-{{ forloop.counter }}">
+                                    <i class="fas fa-chevron-down text-[9px] transition-transform duration-200"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Expandable: basic troubleshooting fields for this call -->
+                        <tr>
+                            <td colspan="9" class="p-0 border-0">
+                                <div id="cdr-row-{{ forloop.counter }}" class="grid grid-rows-[0fr] transition-all duration-300 ease-in-out">
+                                    <div class="overflow-hidden">
+                                        <div class="p-3 bg-gray-50 border-t border-b border-gray-100">
+                                            <dl class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-[11px]">
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">CLID</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.clid|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Channel</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.channel|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Dst Channel</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.dstchannel|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Context</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.dcontext|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Last App</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.lastapp|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Last Data</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.lastdata|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Account Code</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.accountcode|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">AMA Flags</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.amaflags|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">User Field</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.userfield|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Linked ID</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">{{ call.linkedid|default:"-" }}</dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Unique ID</dt>
+                                                    <dd class="font-mono text-gray-700 break-all">
+                                                        {% if call.uniqueid %}
+                                                        <a href="{% url 'admin_cel' %}?uniqueid={{ call.uniqueid }}" class="text-blue-600 hover:underline" title="View full call timeline">{{ call.uniqueid }}</a>
+                                                        {% else %}-{% endif %}
+                                                    </dd>
+                                                </div>
+                                                <div>
+                                                    <dt class="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Recording</dt>
+                                                    <dd class="text-gray-700">
+                                                        {% if call.has_recording %}
+                                                        <div class="cdr-audio-player flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-1 pr-3 py-1 w-[90%]">
+                                                            <button type="button" class="audio-play-btn w-6 h-6 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shrink-0 transition-colors">
+                                                                <i class="fas fa-play text-[9px] ml-0.5"></i>
+                                                            </button>
+                                                            <input type="range" class="audio-seek flex-1 h-1 accent-blue-600 cursor-pointer" min="0" max="100" value="0" step="0.1">
+                                                            <span class="audio-time text-[9px] text-gray-400 font-mono whitespace-nowrap shrink-0">0:00</span>
+                                                            <audio class="hidden" preload="none" src="{% url 'admin_cdr_recording' call.uniqueid %}"></audio>
+                                                        </div>
+                                                        {% else %}-{% endif %}
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-12 text-gray-400 text-xs">
+                                No Call Records Found
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Table Footer: Count + Pagination -->
+        <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+
+                <!-- Count Info -->
+                <p class="text-xs text-gray-500">
+                    Showing
+                    <span class="font-semibold text-gray-700">{{ calls.start_index }}–{{ calls.end_index }}</span>
+                    of
+                    <span class="font-semibold text-blue-600">{{ calls.paginator.count }}</span>
+                    entries
+                </p>
+
+                <!-- Pagination -->
+                {% if calls.has_other_pages %}
+                <nav class="flex items-center gap-1 text-xs">
+
+                    {% if calls.has_previous %}
+                    <a href="?page=1{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angles-left"></i>
+                    </a>
+                    <a href="?page={{ calls.previous_page_number }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                    {% else %}
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angles-left"></i></span>
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angle-left"></i></span>
+                    {% endif %}
+
+                    {% for num in calls.paginator.page_range %}
+                        {% if calls.number == num %}
+                            <span class="px-2.5 py-1 rounded border border-blue-400 bg-blue-500 text-white font-semibold">{{ num }}</span>
+                        {% elif num >= calls.number|add:"-3" and num <= calls.number|add:"3" %}
+                            <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                               class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                        {% elif num == 1 or num == calls.paginator.num_pages %}
+                            {% if num == 1 and calls.number > 5 %}
+                                <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                                <span class="px-1 text-gray-400">…</span>
+                            {% elif num == calls.paginator.num_pages and calls.number < calls.paginator.num_pages|add:"-4" %}
+                                <span class="px-1 text-gray-400">…</span>
+                                <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                            {% else %}
+                                <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if calls.has_next %}
+                    <a href="?page={{ calls.next_page_number }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?page={{ calls.paginator.num_pages }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}{% if filters.disposition %}&disposition={{ filters.disposition }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angles-right"></i>
+                    </a>
+                    {% else %}
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angle-right"></i></span>
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angles-right"></i></span>
+                    {% endif %}
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleButtons = document.querySelectorAll('.details-toggle-btn');
+        let currentOpenPanel = null;
+        let currentOpenBtn = null;
+
+        toggleButtons.forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const targetId = btn.getAttribute('data-target');
+                const panel = document.getElementById(targetId);
+                const icon = btn.querySelector('i');
+
+                if (currentOpenPanel === panel) {
+                    panel.classList.remove('grid-rows-[1fr]');
+                    panel.classList.add('grid-rows-[0fr]');
+                    if (currentOpenBtn) currentOpenBtn.querySelector('i').classList.remove('rotate-180');
+                    currentOpenPanel = null;
+                    currentOpenBtn = null;
+                    return;
+                }
+
+                if (currentOpenPanel) {
+                    currentOpenPanel.classList.remove('grid-rows-[1fr]');
+                    currentOpenPanel.classList.add('grid-rows-[0fr]');
+                    if (currentOpenBtn) currentOpenBtn.querySelector('i').classList.remove('rotate-180');
+                }
+
+                panel.classList.remove('grid-rows-[0fr]');
+                panel.classList.add('grid-rows-[1fr]');
+                if (icon) icon.classList.add('rotate-180');
+                currentOpenPanel = panel;
+                currentOpenBtn = btn;
+            });
+        });
+
+        function formatTime(seconds) {
+            if (!isFinite(seconds)) return '0:00';
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m}:${String(s).padStart(2, '0')}`;
+        }
+
+        document.querySelectorAll('.cdr-audio-player').forEach(function (player) {
+            const audio = player.querySelector('audio');
+            const playBtn = player.querySelector('.audio-play-btn');
+            const icon = playBtn.querySelector('i');
+            const seek = player.querySelector('.audio-seek');
+            const timeLabel = player.querySelector('.audio-time');
+
+            playBtn.addEventListener('click', function () {
+                document.querySelectorAll('.cdr-audio-player audio').forEach(function (other) {
+                    if (other !== audio && !other.paused) other.pause();
+                });
+                if (audio.paused) audio.play(); else audio.pause();
+            });
+
+            audio.addEventListener('play', function () {
+                icon.classList.remove('fa-play');
+                icon.classList.add('fa-pause', 'ml-0');
+                icon.classList.remove('ml-0.5');
+            });
+            audio.addEventListener('pause', function () {
+                icon.classList.remove('fa-pause', 'ml-0');
+                icon.classList.add('fa-play', 'ml-0.5');
+            });
+            audio.addEventListener('loadedmetadata', function () {
+                seek.max = audio.duration;
+                timeLabel.textContent = formatTime(audio.duration);
+            });
+            audio.addEventListener('timeupdate', function () {
+                seek.value = audio.currentTime;
+                timeLabel.textContent = formatTime(audio.paused ? audio.duration : audio.currentTime);
+            });
+            audio.addEventListener('ended', function () {
+                seek.value = 0;
+                timeLabel.textContent = formatTime(audio.duration);
+            });
+            seek.addEventListener('input', function () {
+                audio.currentTime = seek.value;
+            });
+        });
+    });
+</script>
+
+{% endblock %}

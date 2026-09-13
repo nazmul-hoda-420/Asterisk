@@ -1,0 +1,170 @@
+{% extends 'admin/base.html' %}
+{% block title %}Broadcast{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">Voice Broadcast</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Play a pre-recorded message to leads automatically — no agent required</p>
+    </div>
+
+    <a href="{% url 'admin_broadcast_new' %}"
+       class="w-[130px] justify-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+        <i class="fas fa-plus text-[10px]"></i>
+        <span>Create Broadcast</span>
+    </a>
+</div>
+
+<div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left table-fixed">
+            <thead class="bg-slate-100 border-b border-slate-200">
+                <tr>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-12">S/N</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-24">Broadcast ID</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-40">Name</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-32">Lead List</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-32">Audio</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-16">Leads</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-32">Progress</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-28">Status</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-32">Created</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right w-28">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-[12px]">
+                {% for broadcast in broadcasts %}
+                <tr class="bg-white" data-broadcast-id="{{ broadcast.id }}" data-lead-count="{{ broadcast.lead_count }}">
+                    <td class="px-4 py-2 font-bold text-slate-700">{{ forloop.counter }}</td>
+                    <td class="px-4 py-2 font-bold text-slate-700 truncate">{{ broadcast.tag }}</td>
+                    <td class="px-4 py-2 font-semibold text-slate-800 truncate">{{ broadcast.name }}</td>
+                    <td class="px-4 py-2 text-slate-500 truncate">{{ broadcast.lead_list.name }}</td>
+                    <td class="px-4 py-2 text-slate-500 truncate"><i class="fa-solid fa-file-audio text-indigo-400 mr-1"></i>{{ broadcast.sound.name }}</td>
+                    <td class="px-4 py-2 text-slate-500">{{ broadcast.lead_count }}</td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                                <div class="broadcast-progress-bar bg-indigo-500 h-1.5 rounded-full" style="width: {{ broadcast.progress_percent }}%"></div>
+                            </div>
+                            <span class="broadcast-progress-text text-[10px] text-gray-500 shrink-0">{{ broadcast.dialed_count }}/{{ broadcast.lead_count }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full
+                                {% if broadcast.status == 'running' %}bg-green-100 text-green-700
+                                {% elif broadcast.status == 'paused' %}bg-yellow-100 text-yellow-700
+                                {% elif broadcast.status == 'completed' %}bg-emerald-100 text-emerald-700
+                                {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                                {% if broadcast.status == 'completed' %}<i class="fas fa-check text-[8px]"></i>{% endif %}
+                                {{ broadcast.get_status_display }}
+                            </span>
+                            {% if broadcast.status == 'running' %}
+                            <form method="post" action="{% url 'admin_broadcast_pause' broadcast.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-yellow-600" title="Pause">
+                                    <i class="fas fa-pause text-[10px]"></i>
+                                </button>
+                            </form>
+                            {% elif broadcast.status != 'completed' %}
+                            <form method="post" action="{% url 'admin_broadcast_start' broadcast.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-green-600" title="{% if broadcast.status == 'paused' %}Resume{% else %}Start{% endif %}">
+                                    <i class="fas fa-play text-[10px]"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% if broadcast.status == 'draft' and broadcast.scheduled_at %}
+                        <div class="text-[9px] text-slate-400 mt-0.5"><i class="fas fa-clock"></i> Starts {{ broadcast.scheduled_at|date:DATETIME_FORMAT }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-black text-[10px] whitespace-nowrap">{{ broadcast.created_at|date:DATETIME_FORMAT }}</td>
+                    <td class="px-4 py-2 text-right">
+                        <a href="{% url 'admin_broadcast_edit' broadcast.id %}" class="inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-indigo-600" title="Edit">
+                            <i class="fas fa-pen text-[11px]"></i>
+                        </a>
+                        <form method="post" class="inline" onsubmit="return confirm('Delete this broadcast?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="id" value="{{ broadcast.id }}">
+                            <button type="submit" class="inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash text-[11px]"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="px-4 py-4 text-center">
+                        <div class="flex flex-col items-center gap-1.5">
+                            <i class="fas fa-bullhorn text-slate-300 text-xl"></i>
+                            <p class="text-slate-500 text-[11px] font-medium">No broadcasts created yet</p>
+                            <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">Create Broadcast</span> to add one</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+  (function() {
+    // Live progress bar -- the dialing loop pushes a 'broadcast_progress' message over the
+    // same /ws/realtime/ socket the rest of the admin already uses (see admin/admin.html),
+    // so this page doesn't need polling or a manual refresh to see counts move.
+    let socket = null;
+
+    function connect() {
+      const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      socket = new WebSocket(`${scheme}://${window.location.host}/ws/realtime/`);
+      socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        // Separate from 'broadcast_progress' on purpose -- this only ever fires *after*
+        // ami.ami._run_broadcast's finally block has actually committed status="Completed",
+        // so a reload triggered by it can't land on a page that still says "Running" (which a
+        // reload off the per-call progress push below could, since that fires the instant
+        // each Originate returns -- for the *last* call, before that DB update runs). The
+        // Status badge and Pause/Resume button are built from several conditional classes
+        // server-side, so reloading is simpler than replicating that logic in JS.
+        if (data.kind === 'broadcast_finished' || data.kind === 'broadcast_status') {
+          // broadcast_status covers Start/Pause -- a manual click already reloads via its own
+          // form redirect, but the scheduled auto-start/auto-stop checks (ami.ami's
+          // _start_due_scheduled_broadcasts/_stop_due_scheduled_broadcasts) run in the
+          // background with no page load of their own, so without this push an already-open
+          // list page would just keep showing the old Draft/Running status forever.
+          if (document.querySelector(`tr[data-broadcast-id="${data.broadcast_id}"]`)) {
+            window.location.reload();
+          }
+          return;
+        }
+        if (data.kind !== 'broadcast_progress') return;
+        const row = document.querySelector(`tr[data-broadcast-id="${data.broadcast_id}"]`);
+        if (!row) return;
+        const total = data.total || parseInt(row.dataset.leadCount, 10) || 0;
+        const percent = total ? Math.min(Math.round(data.dialed * 100 / total), 100) : 0;
+        const bar = row.querySelector('.broadcast-progress-bar');
+        const text = row.querySelector('.broadcast-progress-text');
+        if (bar) bar.style.width = percent + '%';
+        if (text) text.textContent = `${data.dialed}/${total}`;
+      };
+      socket.onclose = function() { setTimeout(connect, 3000); };
+    }
+    connect();
+
+    // Belt-and-suspenders: onclose above only fires on a *clean* disconnect. A connection can
+    // also go silently dead (laptop sleep/wake, a proxy idle-timing out the socket, a network
+    // blip) without ever firing close -- this page would then sit there indefinitely with a
+    // stale socket that looks connected but never gets another message, exactly matching "a
+    // fresh reload shows the right status, but it never updates live" without one. Checking
+    // readyState periodically catches that case too.
+    setInterval(function() {
+      if (socket && socket.readyState !== WebSocket.OPEN && socket.readyState !== WebSocket.CONNECTING) {
+        connect();
+      }
+    }, 15000);
+  })();
+</script>
+{% endblock %}

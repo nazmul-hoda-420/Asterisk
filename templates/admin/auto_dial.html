@@ -1,0 +1,276 @@
+{% extends 'admin/base.html' %}
+{% block title %}Auto Dial{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">Auto Dial Campaigns</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Progressive dialer — one lead at a time per free agent, connected exactly like a manual call</p>
+    </div>
+
+    <button id="toggleCreateCampaignBtn"
+            class="w-[150px] justify-center px-2 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+        <i id="toggleCreateCampaignIcon" class="fas fa-plus text-[10px]"></i>
+        <span id="toggleCreateCampaignText">New Campaign</span>
+    </button>
+</div>
+
+<!-- Toggleable form container -->
+<div id="createCampaignFormContainer" class="grid grid-rows-[0fr] opacity-0 transition-all duration-300 ease-in-out overflow-hidden">
+    <div class="min-h-0 overflow-hidden">
+        <form method="post" id="campaignForm" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" id="campaignFormAction" value="create">
+            <input type="hidden" name="id" id="campaignFormId" value="">
+            <h3 id="campaignFormHeading" class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                <i class="fas fa-phone-volume text-[10px]"></i> New Campaign
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="campaignName" class="block text-[11px] font-semibold text-slate-600 mb-1">Name</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-tag text-gray-400 text-sm"></i>
+                        </div>
+                        <input type="text" id="campaignName" name="name" placeholder="e.g. Renewal Follow-up"
+                               class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs placeholder:text-[11px]">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="campaignLeadList" class="block text-[11px] font-semibold text-slate-600 mb-1">Lead List</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-address-book text-gray-400 text-sm"></i>
+                        </div>
+                        <select id="campaignLeadList" name="lead_list" class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+                            <option value="">Select...</option>
+                            {% for lead_list in lead_lists %}
+                            <option value="{{ lead_list.id }}">{{ lead_list.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="campaignQueue" class="block text-[11px] font-semibold text-slate-600 mb-1">Queue (agents)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-users text-gray-400 text-sm"></i>
+                        </div>
+                        <select id="campaignQueue" name="queue" class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+                            <option value="">Select...</option>
+                            {% for queue in queues %}
+                            <option value="{{ queue.name }}">{{ queue.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-2">No trunk to pick — each dial goes out through whatever outbound route is already set up for that agent, exactly like a normal manual call.</p>
+            <div class="flex justify-end mt-4">
+                <button type="submit" id="campaignFormSubmit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Save Campaign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left table-fixed">
+            <thead class="bg-slate-100 border-b border-slate-200">
+                <tr>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-12">S/N</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-40">Name</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-32">Lead List</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-28">Queue</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-16">Leads</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-16">Connected</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-32">Progress</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase w-28">Status</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right w-24">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-[12px]">
+                {% for campaign in campaigns %}
+                <tr class="bg-white" data-campaign-id="{{ campaign.id }}" data-lead-count="{{ campaign.lead_count }}">
+                    <td class="px-4 py-2 text-slate-500">{{ forloop.counter }}</td>
+                    <td class="px-4 py-2 font-semibold text-slate-800 truncate">{{ campaign.name }}</td>
+                    <td class="px-4 py-2 text-slate-500 truncate">{{ campaign.lead_list.name }}</td>
+                    <td class="px-4 py-2 text-slate-500 truncate"><i class="fa-solid fa-users text-indigo-400 mr-1"></i>{{ campaign.queue_name }}</td>
+                    <td class="px-4 py-2 text-slate-500">{{ campaign.lead_count }}</td>
+                    <td class="px-4 py-2 text-slate-500 campaign-connected-text">{{ campaign.connected_count }}</td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-2">
+                            <div class="flex-1 bg-gray-100 rounded-full h-1.5">
+                                <div class="campaign-progress-bar bg-indigo-500 h-1.5 rounded-full" style="width: {{ campaign.progress_percent }}%"></div>
+                            </div>
+                            <span class="campaign-progress-text text-[10px] text-gray-500 shrink-0">{{ campaign.dialed_count }}/{{ campaign.lead_count }}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex items-center gap-1.5">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-bold rounded-full
+                                {% if campaign.status == 'running' %}bg-green-100 text-green-700
+                                {% elif campaign.status == 'paused' %}bg-yellow-100 text-yellow-700
+                                {% elif campaign.status == 'completed' %}bg-emerald-100 text-emerald-700
+                                {% else %}bg-indigo-100 text-indigo-700{% endif %}">
+                                {% if campaign.status == 'completed' %}<i class="fas fa-check text-[8px]"></i>{% endif %}
+                                {{ campaign.get_status_display }}
+                            </span>
+                            {% if campaign.status == 'running' %}
+                            <form method="post" action="{% url 'admin_auto_dial_pause' campaign.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-yellow-600" title="Pause">
+                                    <i class="fas fa-pause text-[10px]"></i>
+                                </button>
+                            </form>
+                            {% elif campaign.status != 'completed' %}
+                            <form method="post" action="{% url 'admin_auto_dial_start' campaign.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-green-600" title="{% if campaign.status == 'paused' %}Resume{% else %}Start{% endif %}">
+                                    <i class="fas fa-play text-[10px]"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-4 py-2 text-right">
+                        <button type="button" class="campaign-edit-btn inline-flex items-center justify-center w-6 h-6 text-gray-400 hover:text-indigo-600" title="Edit"
+                                data-id="{{ campaign.id }}" data-name="{{ campaign.name }}"
+                                data-lead-list="{{ campaign.lead_list_id }}" data-queue="{{ campaign.queue_name }}">
+                            <i class="fas fa-pen text-[11px]"></i>
+                        </button>
+                        <form method="post" class="inline" onsubmit="return confirm('Delete this campaign?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="id" value="{{ campaign.id }}">
+                            <button type="submit" class="inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700">
+                                <i class="fas fa-trash text-[11px]"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="px-4 py-4 text-center">
+                        <div class="flex flex-col items-center gap-1.5">
+                            <i class="fas fa-phone-volume text-slate-300 text-xl"></i>
+                            <p class="text-slate-500 text-[11px] font-medium">No campaigns created yet</p>
+                            <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">New Campaign</span> to add one</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+  (function() {
+    const toggleBtn = document.getElementById('toggleCreateCampaignBtn');
+    const formContainer = document.getElementById('createCampaignFormContainer');
+    const toggleIcon = document.getElementById('toggleCreateCampaignIcon');
+    const toggleText = document.getElementById('toggleCreateCampaignText');
+    const form = document.getElementById('campaignForm');
+    const formAction = document.getElementById('campaignFormAction');
+    const formId = document.getElementById('campaignFormId');
+    const formHeading = document.getElementById('campaignFormHeading');
+    const formSubmit = document.getElementById('campaignFormSubmit');
+
+    let isOpen = false;
+
+    function openPanel() {
+      isOpen = true;
+      formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+      formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+      toggleIcon.classList.remove('fa-plus');
+      toggleIcon.classList.add('fa-times');
+      toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+      toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+      toggleText.textContent = 'Cancel';
+    }
+
+    function closePanel() {
+      isOpen = false;
+      formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+      formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+      toggleIcon.classList.remove('fa-times');
+      toggleIcon.classList.add('fa-plus');
+      toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+      toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+      toggleText.textContent = 'New Campaign';
+    }
+
+    function resetToCreateMode() {
+      form.reset();
+      formAction.value = 'create';
+      formId.value = '';
+      formHeading.innerHTML = '<i class="fas fa-phone-volume text-[10px]"></i> New Campaign';
+      formSubmit.textContent = 'Save Campaign';
+    }
+
+    toggleBtn.addEventListener('click', function() {
+      if (isOpen) {
+        closePanel();
+      } else {
+        resetToCreateMode();
+        openPanel();
+      }
+    });
+
+    document.querySelectorAll('.campaign-edit-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        formAction.value = 'edit';
+        formId.value = btn.dataset.id;
+        document.getElementById('campaignName').value = btn.dataset.name;
+        document.getElementById('campaignLeadList').value = btn.dataset.leadList;
+        document.getElementById('campaignQueue').value = btn.dataset.queue;
+        formHeading.innerHTML = '<i class="fas fa-pen text-[10px]"></i> Edit Campaign';
+        formSubmit.textContent = 'Save Changes';
+        openPanel();
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  })();
+
+  (function() {
+    // Live progress -- the dialing hook (ami.ami._dial_next_auto_dial_lead /
+    // _finish_auto_dial_attempt) pushes over the same /ws/realtime/ socket the rest of the
+    // admin already uses. A reload is simplest for the status badge/Pause-Resume button (built
+    // from several conditional classes server-side) and for Connected, which only updates once
+    // an attempt is finalized well after the dial itself.
+    let socket = null;
+
+    function connect() {
+      const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      socket = new WebSocket(`${scheme}://${window.location.host}/ws/realtime/`);
+      socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (!['auto_dial_progress', 'auto_dial_attempt_done', 'auto_dial_finished'].includes(data.kind)) return;
+        if (!document.querySelector(`tr[data-campaign-id="${data.campaign_id}"]`)) return;
+        if (data.kind === 'auto_dial_progress') {
+          const row = document.querySelector(`tr[data-campaign-id="${data.campaign_id}"]`);
+          const total = parseInt(row.dataset.leadCount, 10) || 0;
+          const percent = total ? Math.min(Math.round(data.dialed * 100 / total), 100) : 0;
+          const bar = row.querySelector('.campaign-progress-bar');
+          const text = row.querySelector('.campaign-progress-text');
+          if (bar) bar.style.width = percent + '%';
+          if (text) text.textContent = `${data.dialed}/${total}`;
+          return;
+        }
+        window.location.reload();
+      };
+      socket.onclose = function() { setTimeout(connect, 3000); };
+    }
+    connect();
+
+    setInterval(function() {
+      if (socket && socket.readyState !== WebSocket.OPEN && socket.readyState !== WebSocket.CONNECTING) {
+        connect();
+      }
+    }, 15000);
+  })();
+</script>
+{% endblock %}

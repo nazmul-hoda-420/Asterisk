@@ -1,0 +1,416 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}Registration{% endblock %}
+
+{% block settings_content %}
+<section id="settings-registration" class="settings-tab">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-800">Registration</h2>
+            <p class="text-[11px] text-gray-500 mt-0.5">SIP trunks / providers — username &amp; password registration or IP authentication</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <!-- Compact inline stats -->
+            <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fas fa-tower-broadcast text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ total_trunks }}</span> Total
+                </span>
+                <span class="w-px h-3 bg-slate-200"></span>
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-circle text-green-500 text-[6px]"></i>
+                    <span class="font-bold text-slate-800">{{ active_trunks }}</span> Active
+                </span>
+                <span class="w-px h-3 bg-slate-200"></span>
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-circle text-slate-300 text-[6px]"></i>
+                    <span class="font-bold text-slate-800">{{ inactive_trunks }}</span> Inactive
+                </span>
+            </div>
+
+            <button id="toggleRegFormBtn"
+                    class="w-[110px] justify-center px-2 py-1.5 {% if form.errors %}bg-red-600 hover:bg-red-700{% else %}bg-indigo-600 hover:bg-indigo-700{% endif %} text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+                <i id="toggleRegIcon" class="fas {% if form.errors %}fa-times{% else %}fa-plus{% endif %} text-[10px]"></i>
+                <span id="toggleRegText">{% if form.errors %}Cancel{% else %}New Trunk{% endif %}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toggleable form container -->
+    <div id="regFormContainer"
+         data-has-errors="{% if form.errors %}true{% else %}false{% endif %}"
+         class="grid {% if form.errors %}grid-rows-[1fr] opacity-100{% else %}grid-rows-[0fr] opacity-0{% endif %} transition-all duration-300 ease-in-out overflow-hidden">
+        <div class="min-h-0 overflow-hidden">
+            <form method="post" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+                {% csrf_token %}
+                <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fas fa-tower-broadcast text-[10px]"></i> New Trunk
+                </h3>
+                <div class="flex flex-nowrap items-start gap-3 overflow-x-auto pb-1">
+                    <!-- Trunk Name -->
+                    <div class="flex-1 min-w-[140px]">
+                        <label for="{{ form.name.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Trunk Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-signature text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.name }}
+                        </div>
+                        {% if form.name.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Registration Type -->
+                    <div class="flex-1 min-w-[150px]">
+                        <label for="{{ form.registration_type.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Registration Type</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-key text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.registration_type }}
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                        </div>
+                    </div>
+
+                    <!-- Host -->
+                    <div data-reg-fields="userpass,ip" class="flex-1 min-w-[140px]">
+                        <label for="{{ form.host.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Host / IP</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-server text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.host }}
+                        </div>
+                        {% if form.host.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.host.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Port -->
+                    <div data-reg-fields="userpass,ip" class="w-[90px] shrink-0">
+                        <label for="{{ form.port.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Port</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-ethernet text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.port }}
+                        </div>
+                    </div>
+
+                    <!-- Username & Password (only for username/password registration) -->
+                    <div data-reg-fields="userpass" class="flex-1 min-w-[140px]">
+                        <label for="{{ form.username.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Username</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-at text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.username }}
+                        </div>
+                        {% if form.username.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div data-reg-fields="userpass" class="flex-1 min-w-[150px]">
+                        <label for="{{ form.password.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.password }}
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <button type="button" id="toggleTrunkPassword" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                                    <i class="fas fa-eye text-sm" id="eyeIconTrunk"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% if form.password.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.password.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- IP Addresses (only for IP authentication) -->
+                    <div data-reg-fields="ip" class="flex-1 min-w-[220px]">
+                        <label for="{{ form.ip_addresses.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Allowed IP / CIDR (comma separated)</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-network-wired text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.ip_addresses }}
+                        </div>
+                        {% if form.ip_addresses.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.ip_addresses.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- WhatsApp Business Calling -->
+                    <div data-reg-fields="whatsapp" class="flex-1 min-w-[160px]">
+                        <label for="{{ form.whatsapp_number.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">WhatsApp Business Number</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa-brands fa-whatsapp text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.whatsapp_number }}
+                        </div>
+                        {% if form.whatsapp_number.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.whatsapp_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div data-reg-fields="whatsapp" class="flex-1 min-w-[150px]">
+                        <label for="{{ form.whatsapp_sip_password.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">SIP Password</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400 text-sm"></i>
+                            </div>
+                            {{ form.whatsapp_sip_password }}
+                        </div>
+                        {% if form.whatsapp_sip_password.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.whatsapp_sip_password.errors.0 }}</p>
+                        {% endif %}
+                        <p class="text-slate-400 text-[10px] mt-1">
+                            Get it by running this (replace <code>&lt;PHONE_NUMBER_ID&gt;</code> and <code>&lt;ACCESS_TOKEN&gt;</code>) and copying the <code>sip_user_password</code> value from the JSON response:<br>
+                            <code class="block bg-slate-50 border border-slate-200 rounded px-2 py-1 mt-1 whitespace-pre-wrap break-all">curl -X GET "https://graph.facebook.com/v25.0/&lt;PHONE_NUMBER_ID&gt;/settings?include_sip_credentials=true" \
+  -H "Authorization: Bearer &lt;ACCESS_TOKEN&gt;"</code>
+                            Set where inbound calls ring on Settings → Routing after saving.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Save Trunk</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trunks table -->
+    <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-100 border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Name</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Type</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Host</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Username</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Password</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Status</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Enabled</th>
+                        <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-[12px]">
+                    {% for row in trunk_rows %}
+                    <tr class="bg-white">
+                        <td class="px-4 py-2 font-semibold text-slate-800">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[10px] font-semibold shrink-0">
+                                    <i class="fas fa-tower-broadcast"></i>
+                                </div>
+                                {{ row.endpoint.id }}
+                            </div>
+                        </td>
+                        <td class="px-4 py-2">
+                            {% if row.registration_type == 'userpass' %}
+                                <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-medium">Username &amp; Password</span>
+                            {% elif row.registration_type == 'ip' %}
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-medium">IP Authentication</span>
+                            {% elif row.registration_type == 'whatsapp' %}
+                                <span class="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-medium"><i class="fa-brands fa-whatsapp"></i> WhatsApp Calling</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px] font-medium">Unconfigured</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2 text-slate-500 font-mono text-[11px]">{{ row.host|default:"—" }}</td>
+                        <td class="px-4 py-2 text-slate-500 text-[11px]">
+                            {% if row.registration_type == 'userpass' or row.registration_type == 'whatsapp' %}
+                                {{ row.username|default:"—" }}
+                            {% elif row.registration_type == 'ip' %}
+                                {{ row.ips|join:", " }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2 text-slate-500">
+                            {% if row.password %}
+                            <div class="flex items-center gap-2">
+                                <span class="password-mask font-mono text-[11px] tracking-widest">••••••••</span>
+                                <span class="password-real font-mono text-[11px] hidden">{{ row.password }}</span>
+                                <button type="button" class="password-toggle-btn text-slate-400 hover:text-slate-600">
+                                    <i class="fas fa-eye text-[10px]"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2">
+                            {% if row.status == 'Registered' or row.status == 'Avail' %}
+                                <span class="inline-flex items-center gap-1.5 text-green-700 text-[11px] font-medium">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> {% if row.status == 'Avail' %}Reachable{% else %}Registered{% endif %}
+                                </span>
+                            {% elif row.status == 'Unregistered' %}
+                                <span class="inline-flex items-center gap-1.5 text-gray-500 text-[11px] font-medium">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Unregistered
+                                </span>
+                            {% elif row.status == 'Unavail' %}
+                                <span class="inline-flex items-center gap-1.5 text-red-600 text-[11px] font-medium">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Unreachable
+                                </span>
+                            {% elif row.status == 'NonQual' %}
+                                <span class="inline-flex items-center gap-1.5 text-gray-500 text-[11px] font-medium">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Checking&hellip;
+                                </span>
+                            {% elif row.status == 'Unknown' %}
+                                <span class="inline-flex items-center gap-1.5 text-gray-500 text-[11px] font-medium">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Unknown
+                                </span>
+                            {% elif row.status == 'Active' %}
+                                <span class="inline-flex items-center gap-1.5 text-green-700 text-[11px] font-medium">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Active
+                                </span>
+                            {% elif row.status == 'Inactive' %}
+                                <span class="inline-flex items-center gap-1.5 text-gray-500 text-[11px] font-medium">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> Inactive
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 text-red-600 text-[11px] font-medium" title="{{ row.status }}">
+                                    <i class="fa-solid fa-circle text-[6px]"></i> {{ row.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2">
+                            <form method="post" action="{% url 'admin_settings_registration_toggle' row.endpoint.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="flex items-center gap-2">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full
+                                        {% if not row.endpoint.is_active %}text-slate-400 hover:text-green-600 hover:bg-green-50{% else %}text-green-600 hover:text-slate-500 hover:bg-slate-100{% endif %}"
+                                        title="{% if not row.endpoint.is_active %}Activate trunk{% else %}Deactivate trunk{% endif %}">
+                                        <i class="fas {% if not row.endpoint.is_active %}fa-toggle-off{% else %}fa-toggle-on{% endif %} text-sm"></i>
+                                    </span>
+                                    <span class="text-[10px] font-semibold {% if not row.endpoint.is_active %}text-slate-400{% else %}text-green-600{% endif %}">
+                                        {% if not row.endpoint.is_active %}Inactive{% else %}Active{% endif %}
+                                    </span>
+                                </button>
+                            </form>
+                        </td>
+                        <td class="px-4 py-2 text-right">
+                            <form method="post" action="{% url 'admin_settings_registration_delete' row.endpoint.id %}" class="inline" onsubmit="return confirm('Delete trunk {{ row.endpoint.id }}?');">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center justify-center w-6 h-6 text-red-500 hover:text-red-700">
+                                    <i class="fas fa-trash text-[11px]"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-4 text-center">
+                            <div class="flex flex-col items-center gap-1.5">
+                                <i class="fas fa-tower-broadcast text-slate-300 text-xl"></i>
+                                <p class="text-slate-500 text-[11px] font-medium">No trunks configured yet</p>
+                                <p class="text-slate-400 text-[10px]">Click <span class="font-semibold text-indigo-600">New Trunk</span> to add one</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<script>
+  (function() {
+    const toggleBtn = document.getElementById('toggleRegFormBtn');
+    const formContainer = document.getElementById('regFormContainer');
+    const toggleIcon = document.getElementById('toggleRegIcon');
+    const toggleText = document.getElementById('toggleRegText');
+
+    let isOpen = formContainer.dataset.hasErrors === 'true';
+
+    toggleBtn.addEventListener('click', function() {
+      isOpen = !isOpen;
+
+      if (isOpen) {
+        formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+        formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+        toggleIcon.classList.remove('fa-plus');
+        toggleIcon.classList.add('fa-times');
+        toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+        toggleText.textContent = 'Cancel';
+      } else {
+        formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+        formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+        toggleIcon.classList.remove('fa-times');
+        toggleIcon.classList.add('fa-plus');
+        toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleText.textContent = 'New Trunk';
+      }
+    });
+  })();
+
+  (function() {
+    const toggleBtn = document.getElementById('toggleTrunkPassword');
+    if (!toggleBtn) return;
+    toggleBtn.addEventListener('click', function() {
+      const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+      const eyeIcon = document.getElementById('eyeIconTrunk');
+      if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        eyeIcon.classList.remove('fa-eye');
+        eyeIcon.classList.add('fa-eye-slash');
+      } else {
+        passwordField.type = 'password';
+        eyeIcon.classList.remove('fa-eye-slash');
+        eyeIcon.classList.add('fa-eye');
+      }
+    });
+  })();
+
+  (function() {
+    document.querySelectorAll('.password-toggle-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const wrapper = btn.closest('div');
+        const mask = wrapper.querySelector('.password-mask');
+        const real = wrapper.querySelector('.password-real');
+        const icon = btn.querySelector('i');
+        const isHidden = real.classList.contains('hidden');
+
+        if (isHidden) {
+          mask.classList.add('hidden');
+          real.classList.remove('hidden');
+          icon.classList.remove('fa-eye');
+          icon.classList.add('fa-eye-slash');
+        } else {
+          mask.classList.remove('hidden');
+          real.classList.add('hidden');
+          icon.classList.remove('fa-eye-slash');
+          icon.classList.add('fa-eye');
+        }
+      });
+    });
+  })();
+
+  (function() {
+    // Shows only the fields relevant to the selected registration type.
+    const typeSelect = document.getElementById('{{ form.registration_type.id_for_label }}');
+    if (!typeSelect) return;
+
+    function applyVisibility() {
+      const selected = typeSelect.value;
+      document.querySelectorAll('[data-reg-fields]').forEach(function(el) {
+        const allowed = el.dataset.regFields.split(',');
+        el.classList.toggle('hidden', !allowed.includes(selected));
+      });
+    }
+
+    typeSelect.addEventListener('change', applyVisibility);
+    applyVisibility();
+  })();
+</script>
+{% endblock %}

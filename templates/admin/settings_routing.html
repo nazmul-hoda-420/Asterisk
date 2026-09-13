@@ -1,0 +1,577 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}Routing{% endblock %}
+
+{% block settings_content %}
+<div class="">
+
+  <!-- ========== HEADER ========== -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+    <div>
+      <h2 class="text-sm font-semibold text-gray-800">Call Routes</h2>
+      <p class="text-[11px] text-gray-500 mt-0.5">Manage inbound &amp; outbound routing from one place.</p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+      <!-- Route count badge -->
+      <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+        <span class="flex items-center gap-1.5 text-slate-600">
+          <i class="fas fa-route text-slate-400 text-[10px]"></i>
+          <span class="font-bold text-slate-800">{{ total_routes }}</span> Total
+        </span>
+        <span class="w-px h-3 bg-slate-200"></span>
+        <span class="flex items-center gap-1.5 text-slate-600">
+          <i class="fa-solid fa-circle text-green-500 text-[6px]"></i>
+          <span class="font-bold text-slate-800">{{ active_routes }}</span> Active
+        </span>
+        <span class="w-px h-3 bg-slate-200"></span>
+        <span class="flex items-center gap-1.5 text-slate-600">
+          <i class="fa-solid fa-circle text-slate-300 text-[6px]"></i>
+          <span class="font-bold text-slate-800">{{ inactive_routes }}</span> Inactive
+        </span>
+      </div>
+
+      <!-- Toggle Form Button -->
+      <button id="toggleRouteFormBtn"
+              class="w-[125px] justify-center px-2 py-1.5 {% if form.errors %}bg-red-600 hover:bg-red-700{% else %}bg-indigo-600 hover:bg-indigo-700{% endif %} text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+        <i id="toggleRouteIcon" class="fas {% if form.errors %}fa-times{% else %}fa-plus{% endif %} text-[10px]"></i>
+        <span id="toggleRouteText">{% if form.errors %}Cancel{% else %}New Route{% endif %}</span>
+      </button>
+    </div>
+  </div>
+
+
+
+  <!-- ========== TOGGLEABLE FORM ========== -->
+  <div id="routeFormContainer"
+       data-has-errors="{% if form.errors %}true{% else %}false{% endif %}"
+       class="grid {% if form.errors %}grid-rows-[1fr] opacity-100{% else %}grid-rows-[0fr] opacity-0{% endif %} transition-all duration-300 ease-in-out overflow-hidden">
+    <div class="min-h-0 overflow-hidden">
+      <form method="post" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+
+        <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <i class="fas fa-plus-circle text-[10px]"></i> Add Route
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          <!-- Direction -->
+          <div>
+            <label for="id_direction" class="block text-[11px] font-semibold text-slate-600 mb-1">Direction</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-arrows-left-right text-gray-400 text-sm"></i>
+              </div>
+              <select name="direction" id="id_direction"
+                      class="pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                <option value="">-- select direction --</option>
+                <option value="inbound" {% if form.direction.value == 'inbound' %}selected{% endif %}>Inbound</option>
+                <option value="outbound" {% if form.direction.value == 'outbound' %}selected{% endif %}>Outbound</option>
+              </select>
+              <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+            </div>
+            {% if form.direction.errors %}
+              <p class="text-red-500 text-[10px] mt-1">{{ form.direction.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <!-- Route Name -->
+          <div>
+            <label for="id_name" class="block text-[11px] font-semibold text-slate-600 mb-1">Route Name</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-tag text-gray-400 text-sm"></i>
+              </div>
+              <input type="text" name="name" id="id_name"
+                     value="{{ form.name.value|default_if_none:'' }}"
+                     class="pl-9 block w-full px-3 py-1.5 border {% if form.name.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-sm placeholder:text-xs"
+                     placeholder="e.g. Local-Outbound">
+            </div>
+            {% if form.name.errors %}
+              <p class="text-red-500 text-[10px] mt-1">{{ form.name.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <!-- Trunk (custom select + hidden) -->
+          <div>
+            <label for="trunk_select" class="block text-[11px] font-semibold text-slate-600 mb-1">Trunk</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-network-wired text-gray-400 text-sm"></i>
+              </div>
+              <select id="trunk_select"
+                      class="pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                <option value="">-- select trunk --</option>
+                {% for t in trunks %}
+                  <option value="{{ t.id }}"
+                    data-used-inbound="{{ t.used_inbound|yesno:'1,0' }}"
+                    data-used-outbound="{{ t.used_outbound|yesno:'1,0' }}"
+                    {% if form.trunk.value == t.id %}selected{% endif %}>
+                    {{ t.id }}
+                    {% if t.used_inbound %}(used in inbound){% endif %}
+                    {% if t.used_outbound %}(used in outbound){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+              <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+              <!-- Hidden input for trunk value -->
+              <input type="hidden" name="trunk" id="id_trunk" value="{{ form.trunk.value|default_if_none:'' }}">
+            </div>
+            {% if form.trunk.errors %}
+              <p class="text-red-500 text-[10px] mt-1">{{ form.trunk.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <!-- ===== INBOUND FIELDS ===== -->
+          <div id="inbound_fields" class="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-4">
+            <!-- DID -->
+            <div>
+              <label for="id_did" class="block text-[11px] font-semibold text-slate-600 mb-1">DID Number</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-phone-alt text-gray-400 text-sm"></i>
+                </div>
+                <input type="text" name="did" id="id_did"
+                       value="{{ form.did.value|default_if_none:'' }}"
+                       class="pl-9 block w-full px-3 py-1.5 border {% if form.did.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-sm placeholder:text-xs"
+                       placeholder="e.g. 8802XXXXXXXXX">
+              </div>
+              {% if form.did.errors %}
+                <p class="text-red-500 text-[10px] mt-1">{{ form.did.errors.0 }}</p>
+              {% endif %}
+            </div>
+
+            <!-- Destination Type -->
+            <div>
+              <label for="id_destination_type" class="block text-[11px] font-semibold text-slate-600 mb-1">Destination Type</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-bullseye text-gray-400 text-sm"></i>
+                </div>
+                <select name="destination_type" id="id_destination_type"
+                        class="pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                  <option value="extension" {% if form.destination_type.value == 'extension' %}selected{% endif %}>Extension</option>
+                  <option value="queue" {% if form.destination_type.value == 'queue' %}selected{% endif %}>Queue</option>
+                  <option value="ivr" {% if form.destination_type.value == 'ivr' %}selected{% endif %}>IVR</option>
+                </select>
+                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+              </div>
+              {% if form.destination_type.errors %}
+                <p class="text-red-500 text-[10px] mt-1">{{ form.destination_type.errors.0 }}</p>
+              {% endif %}
+            </div>
+
+            <!-- Destination (dynamic dropdowns) -->
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Destination</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-arrow-right text-gray-400 text-sm"></i>
+                </div>
+                <!-- Extension select -->
+                <select id="destination_extension_select"
+                        class="pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                  <option value="">-- select extension --</option>
+                  {% for ext in extensions %}
+                    <option value="{{ ext.id }}" {% if form.destination_id.value == ext.id|stringformat:"s" %}selected{% endif %}>{{ ext.id }}{% if ext.assigned_user.full_name %} — {{ ext.assigned_user.full_name }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+                <!-- Queue select -->
+                <select id="destination_queue_select"
+                        class="hidden pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                  <option value="">-- select queue --</option>
+                  {% for q in queues %}
+                    <option value="{{ q.name }}" {% if form.destination_id.value == q.name %}selected{% endif %}>{{ q.name }}</option>
+                  {% endfor %}
+                </select>
+                <!-- IVR select -->
+                <select id="destination_ivr_select"
+                        class="hidden pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                  <option value="">-- select IVR --</option>
+                  {% for iv in ivrs %}
+                    <option value="{{ iv.name }}" {% if form.destination_id.value == iv.name %}selected{% endif %}>{{ iv.name }}</option>
+                  {% endfor %}
+                </select>
+                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+              </div>
+              <input type="hidden" name="destination_id" id="id_destination_id" value="{{ form.destination_id.value|default_if_none:'' }}">
+              {% if form.destination_id.errors %}
+                <p class="text-red-500 text-[10px] mt-1">{{ form.destination_id.errors.0 }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- ===== OUTBOUND FIELDS ===== -->
+          <div id="outbound_fields" class="hidden md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-4">
+            <!-- Source Type -->
+            <div>
+              <label for="id_source_type" class="block text-[11px] font-semibold text-slate-600 mb-1">Source Type</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-user text-gray-400 text-sm"></i>
+                </div>
+                <select name="source_type" id="id_source_type"
+                        class="pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                  <option value="extension" {% if form.source_type.value == 'extension' %}selected{% endif %}>Extension</option>
+                  <option value="queue" {% if form.source_type.value == 'queue' %}selected{% endif %}>Queue</option>
+                </select>
+                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+              </div>
+              {% if form.source_type.errors %}
+                <p class="text-red-500 text-[10px] mt-1">{{ form.source_type.errors.0 }}</p>
+              {% endif %}
+            </div>
+
+            <!-- Source (dynamic dropdowns) -->
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-600 mb-1">Source</label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-arrow-right text-gray-400 text-sm"></i>
+                </div>
+                <!-- Extension select -->
+                <select id="source_extension_select"
+                        class="pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                  <option value="">-- select extension --</option>
+                  {% for ext in extensions %}
+                    <option value="{{ ext.id }}" {% if form.source_id.value == ext.id|stringformat:"s" %}selected{% endif %}>{{ ext.id }}{% if ext.assigned_user.full_name %} — {{ ext.assigned_user.full_name }}{% endif %}</option>
+                  {% endfor %}
+                </select>
+                <!-- Queue select -->
+                <select id="source_queue_select"
+                        class="hidden pl-9 pr-8 block w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs bg-white appearance-none">
+                  <option value="">-- select queue --</option>
+                  {% for q in queues %}
+                    <option value="{{ q.name }}" {% if form.source_id.value == q.name %}selected{% endif %}>{{ q.name }}</option>
+                  {% endfor %}
+                </select>
+                <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+              </div>
+              <input type="hidden" name="source_id" id="id_source_id" value="{{ form.source_id.value|default_if_none:'' }}">
+              <p class="mt-1 text-[10px] text-slate-400">Leave empty to match any number (catch‑all).</p>
+              {% if form.source_id.errors %}
+                <p class="text-red-500 text-[10px] mt-1">{{ form.source_id.errors.0 }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Form footer: active + submit -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 mt-4">
+          <label class="flex items-center gap-2 text-[11px] text-slate-600">
+            <input type="checkbox" name="is_active" id="id_is_active" {% if form.is_active.value %}checked{% endif %}>
+            Keep active
+          </label>
+          <button type="submit"
+            class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">
+            Create Route
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== INBOUND ROUTES TABLE ========== -->
+  <h2 class="text-sm font-semibold text-slate-700 mb-3">Inbound Routes</h2>
+  <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden mb-8">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-slate-100 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">DID</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Trunk</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Destination</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Status</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-[12px]">
+          {% for route in inbound_routes %}
+          <tr class="bg-white hover:bg-slate-50">
+            <td class="px-4 py-2.5 font-mono font-semibold text-slate-800">{{ route.did }}</td>
+            <td class="px-4 py-2.5 text-slate-600">{{ route.trunk.id }}</td>
+            <td class="px-4 py-2.5">
+              <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-medium
+                {% if route.destination_type == 'queue' %} bg-amber-50 text-amber-700
+                {% elif route.destination_type == 'ivr' %} bg-purple-50 text-purple-700
+                {% else %} bg-sky-50 text-sky-700 {% endif %}">
+                {{ route.get_destination_type_display }} · {{ route.destination_label }}
+              </span>
+            </td>
+            <td class="px-4 py-2.5">
+              {% if route.is_active %}
+                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-700">
+                  <i class="fa-solid fa-circle text-[6px] text-teal-600"></i> Active
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                  <i class="fa-solid fa-circle text-[6px] text-slate-300"></i> Inactive
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right">
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="name" value="{{ route.name }}">
+                <button type="submit" class="{% if route.is_active %}text-green-600 hover:text-slate-500{% else %}text-slate-400 hover:text-green-600{% endif %}" title="{% if route.is_active %}Deactivate{% else %}Activate{% endif %}">
+                  <i class="fas fa-toggle-{% if route.is_active %}on{% else %}off{% endif %} text-sm"></i>
+                </button>
+              </form>
+              <form method="post" onsubmit="return confirm('Delete this route?');" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="name" value="{{ route.name }}">
+                <button type="submit" class="text-[11px] font-medium text-rose-600 hover:text-rose-800 ml-2">
+                  <i class="fas fa-trash text-[11px]"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-4 py-6 text-center text-[11px] text-slate-400">
+              No inbound routes created yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== OUTBOUND ROUTES TABLE ========== -->
+  <h2 class="text-sm font-semibold text-slate-700 mb-3">Outbound Routes</h2>
+  <div class="bg-white rounded-md border border-slate-200 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-slate-100 border-b border-slate-200">
+          <tr>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Name</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Source</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Trunk</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase">Status</th>
+            <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200 text-[12px]">
+          {% for route in outbound_routes %}
+          <tr class="bg-white hover:bg-slate-50">
+            <td class="px-4 py-2.5 font-mono font-semibold text-slate-800">{{ route.name }}</td>
+            <td class="px-4 py-2.5">
+              {% if route.source_type %}
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-0.5 text-[10px] font-medium text-violet-700">
+                  {{ route.get_source_type_display }} · {{ route.source_label }}
+                </span>
+              {% else %}
+                <span class="text-[10px] text-slate-400">Any number (fallback)</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-slate-600">{{ route.trunk.id }}</td>
+            <td class="px-4 py-2.5">
+              {% if route.is_active %}
+                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-700">
+                  <i class="fa-solid fa-circle text-[6px] text-teal-600"></i> Active
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                  <i class="fa-solid fa-circle text-[6px] text-slate-300"></i> Inactive
+                </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right">
+              <form method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle">
+                <input type="hidden" name="name" value="{{ route.name }}">
+                <button type="submit" class="{% if route.is_active %}text-green-600 hover:text-slate-500{% else %}text-slate-400 hover:text-green-600{% endif %}" title="{% if route.is_active %}Deactivate{% else %}Activate{% endif %}">
+                  <i class="fas fa-toggle-{% if route.is_active %}on{% else %}off{% endif %} text-sm"></i>
+                </button>
+              </form>
+              <form method="post" onsubmit="return confirm('Delete this route?');" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="name" value="{{ route.name }}">
+                <button type="submit" class="text-[11px] font-medium text-rose-600 hover:text-rose-800 ml-2">
+                  <i class="fas fa-trash text-[11px]"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="px-4 py-6 text-center text-[11px] text-slate-400">
+              No outbound routes created yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ========== JAVASCRIPT ========== -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+
+    // ---- TOGGLE FORM ----
+    const toggleBtn = document.getElementById('toggleRouteFormBtn');
+    const formContainer = document.getElementById('routeFormContainer');
+    const toggleIcon = document.getElementById('toggleRouteIcon');
+    const toggleText = document.getElementById('toggleRouteText');
+
+    let isOpen = formContainer.dataset.hasErrors === 'true';
+
+    toggleBtn.addEventListener('click', function() {
+      isOpen = !isOpen;
+      if (isOpen) {
+        formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+        formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+        toggleIcon.classList.remove('fa-plus');
+        toggleIcon.classList.add('fa-times');
+        toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+        toggleText.textContent = 'Cancel';
+      } else {
+        formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+        formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+        toggleIcon.classList.remove('fa-times');
+        toggleIcon.classList.add('fa-plus');
+        toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleText.textContent = 'New Route';
+      }
+    });
+
+    // ---- DIRECTION TOGGLE (inbound / outbound fields) ----
+    const directionSelect = document.getElementById('id_direction');
+    const inboundFields = document.getElementById('inbound_fields');
+    const outboundFields = document.getElementById('outbound_fields');
+
+    function toggleDirectionFields() {
+      if (directionSelect.value === 'outbound') {
+        inboundFields.classList.add('hidden');
+        outboundFields.classList.remove('hidden');
+      } else {
+        outboundFields.classList.add('hidden');
+        inboundFields.classList.remove('hidden');
+      }
+    }
+
+    directionSelect.addEventListener('change', toggleDirectionFields);
+    toggleDirectionFields();
+
+    // ---- DESTINATION DROPDOWN SWITCH ----
+    const typeSelect = document.getElementById('id_destination_type');
+    const hiddenDest = document.getElementById('id_destination_id');
+    const extSelect = document.getElementById('destination_extension_select');
+    const queueSelect = document.getElementById('destination_queue_select');
+    const ivrSelect = document.getElementById('destination_ivr_select');
+
+    function toggleDestinationDropdown() {
+      extSelect.classList.add('hidden');
+      queueSelect.classList.add('hidden');
+      ivrSelect.classList.add('hidden');
+
+      let active;
+      if (typeSelect.value === 'queue') active = queueSelect;
+      else if (typeSelect.value === 'ivr') active = ivrSelect;
+      else active = extSelect;
+
+      active.classList.remove('hidden');
+      hiddenDest.value = active.value;
+    }
+
+    typeSelect.addEventListener('change', toggleDestinationDropdown);
+    [extSelect, queueSelect, ivrSelect].forEach(sel => {
+      sel.addEventListener('change', function() {
+        hiddenDest.value = this.value;
+      });
+    });
+    toggleDestinationDropdown();
+
+    // ---- SOURCE DROPDOWN SWITCH ----
+    const sourceTypeSelect = document.getElementById('id_source_type');
+    const sourceIdInput = document.getElementById('id_source_id');
+    const sourceExtSelect = document.getElementById('source_extension_select');
+    const sourceQueueSelect = document.getElementById('source_queue_select');
+
+    function toggleSourceDropdown() {
+      sourceExtSelect.classList.add('hidden');
+      sourceQueueSelect.classList.add('hidden');
+
+      let active = sourceTypeSelect.value === 'queue' ? sourceQueueSelect : sourceExtSelect;
+      active.classList.remove('hidden');
+      sourceIdInput.value = active.value;
+    }
+
+    sourceTypeSelect.addEventListener('change', toggleSourceDropdown);
+    [sourceExtSelect, sourceQueueSelect].forEach(sel => {
+      sel.addEventListener('change', function() {
+        sourceIdInput.value = this.value;
+      });
+    });
+    toggleSourceDropdown();
+
+    // ---- TRUNK FILTER (hide already used) ----
+    const trunkSelect = document.getElementById('trunk_select');
+    const trunkHidden = document.getElementById('id_trunk');
+
+    function filterTrunkOptions() {
+      const isInbound = directionSelect.value !== 'outbound';
+      let currentValueStillValid = false;
+
+      Array.from(trunkSelect.options).forEach(opt => {
+        if (!opt.value) return;
+        const usedInbound = opt.dataset.usedInbound === '1';
+        const usedOutbound = opt.dataset.usedOutbound === '1';
+        const shouldHide = isInbound ? usedInbound : usedOutbound;
+
+        opt.hidden = shouldHide;
+        opt.disabled = shouldHide;
+
+        if (opt.value === trunkSelect.value && !shouldHide) {
+          currentValueStillValid = true;
+        }
+      });
+
+      if (!currentValueStillValid) {
+        trunkSelect.value = '';
+        trunkHidden.value = '';
+      }
+    }
+
+    directionSelect.addEventListener('change', filterTrunkOptions);
+    trunkSelect.addEventListener('change', function() {
+      trunkHidden.value = this.value;
+    });
+    filterTrunkOptions();
+
+    // ---- FORM VALIDATION ----
+    const form = document.querySelector('form[method="post"]');
+    form.addEventListener('submit', function(e) {
+      if (!trunkHidden.value) {
+        e.preventDefault();
+        alert('Please select a trunk.');
+        return;
+      }
+      if (directionSelect.value === 'inbound') {
+        toggleDestinationDropdown();
+        if (!hiddenDest.value) {
+          e.preventDefault();
+          alert('Please select a destination.');
+          return;
+        }
+      } else {
+        toggleSourceDropdown();
+        // source_id can be empty (catch-all), so no validation needed
+      }
+    });
+
+  });
+</script>
+{% endblock %}

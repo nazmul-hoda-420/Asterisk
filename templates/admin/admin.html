@@ -1,0 +1,489 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">Dashboard</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Overview of the entire call center</p>
+    </div>
+    <span class="flex items-center gap-1.5 text-[11px] font-semibold text-green-600">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Live
+    </span>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Total Login</p>
+            <i class="fa-solid fa-right-to-bracket text-green-700"></i>
+        </div>
+        <p id="statTotalLogin" class="text-lg font-bold text-black mt-1 text-center">{{ total_login }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Currently logged in</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Total Incall</p>
+            <i class="fa-solid fa-phone-volume text-indigo-700"></i>
+        </div>
+        <p id="statTotalIncall" class="text-lg font-bold text-black mt-1 text-center">{{ total_incall }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Agents on a call right now</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Live Queue</p>
+            <i class="fa-solid fa-users-line text-amber-600"></i>
+        </div>
+        <p id="statLiveQueue" class="text-lg font-bold text-black mt-1 text-center">{{ live_queue_count }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Callers waiting right now</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Missed Calls</p>
+            <i class="fa-solid fa-phone-slash text-red-600"></i>
+        </div>
+        <p id="statMissedCalls" class="text-lg font-bold text-black mt-1 text-center">{{ missed_calls_count }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Not called back yet</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">SLA</p>
+            <i class="fa-solid fa-gauge-high text-emerald-600"></i>
+        </div>
+        <p id="statSla" class="text-lg font-bold text-black mt-1 text-center">{% if sla_percent is not None %}{{ sla_percent }}%{% else %}—{% endif %}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Within target time</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Paused Agents</p>
+            <i class="fa-solid fa-pause text-yellow-600"></i>
+        </div>
+        <p id="statPausedAgents" class="text-lg font-bold text-black mt-1 text-center">{{ paused_agents_count }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Logged in but on break</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Avg Wait Time</p>
+            <i class="fa-solid fa-stopwatch text-sky-600"></i>
+        </div>
+        <p class="text-lg font-bold text-black mt-1 text-center">{{ avg_wait_display }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Average wait today</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Abandoned Today</p>
+            <i class="fa-solid fa-phone-slash text-rose-600"></i>
+        </div>
+        <p class="text-lg font-bold text-black mt-1 text-center">{{ abandoned_today }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Callers hung up waiting</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] font-semibold text-black">Today's Call Summary</p>
+            <i class="fa-solid fa-phone-volume text-indigo-600"></i>
+        </div>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-phone mr-1 text-slate-400"></i>Total Calls</p>
+                <p class="text-base font-bold text-black">{{ total_calls_today }}</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-arrow-down text-green-500 mr-1"></i>Inbound</p>
+                <p class="text-base font-bold text-black">{{ total_inbound }}</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-arrow-up text-indigo-500 mr-1"></i>Outbound</p>
+                <p class="text-base font-bold text-black">{{ total_outbound }}</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100">
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-clock mr-1 text-slate-400"></i>Total Call Time</p>
+                <p class="text-sm font-bold text-black">{{ total_talk_time }}</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-arrow-down text-green-500 mr-1"></i>Inbound Call Time</p>
+                <p class="text-sm font-bold text-black">{{ total_inbound_talk_time }}</p>
+            </div>
+            <div class="text-center">
+                <p class="text-[10px] text-gray-400"><i class="fa-solid fa-arrow-up text-indigo-500 mr-1"></i>Outbound Call Time</p>
+                <p class="text-sm font-bold text-black">{{ total_outbound_talk_time }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4 lg:col-span-2">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] font-semibold text-black">Today's Call Volume by Hour</p>
+            <i class="fa-solid fa-chart-column text-slate-500"></i>
+        </div>
+        <div style="height: 180px;">
+            <canvas id="hourlyVolumeChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] font-semibold text-black">Team Status</p>
+            <a href="{% url 'admin_monitoring' %}" class="text-[10px] text-indigo-600 hover:underline">View All <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div id="teamStatusList" class="divide-y divide-gray-50">
+            {% for agent in team_status %}
+            <div class="flex items-center justify-between py-1.5 team-status-row" data-ext="{{ agent.id }}">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-[10px] font-semibold flex items-center justify-center shrink-0">{{ agent.assigned_user.full_name|default:agent.id|slice:":2"|upper }}</span>
+                    <span class="text-xs text-gray-800">{{ agent.assigned_user.full_name|default:agent.id }} <span class="text-gray-400 text-[10px]">({{ agent.id }})</span></span>
+                </div>
+                <span class="status-cell inline-flex items-center gap-1 text-[11px]
+                    {% if agent.status == 'Available' %}text-green-600
+                    {% elif agent.status == 'On Call' %}text-indigo-600
+                    {% elif agent.status == 'Ringing' %}text-amber-600
+                    {% elif agent.status == 'Paused' %}text-yellow-600
+                    {% else %}text-gray-400{% endif %}">
+                    <i class="fa-solid fa-circle text-[6px]"></i> {{ agent.status }}
+                </span>
+            </div>
+            {% empty %}
+            <p id="teamStatusEmpty" class="text-[11px] text-gray-400 py-4 text-center">No agents currently logged in</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] font-semibold text-black">Live Queue by Group</p>
+            <i class="fa-solid fa-layer-group text-amber-600"></i>
+        </div>
+        <p id="longestWaitLine" class="text-[10.5px] text-gray-500 mb-2 {% if not longest_wait %}hidden{% endif %}">
+            <i class="fa-solid fa-hourglass-half text-amber-500 mr-1"></i>
+            Longest wait: <span class="font-semibold text-gray-700">{% if longest_wait %}{{ longest_wait.caller }} ({{ longest_wait.queue }}){% endif %}</span>
+            <span id="longestWaitSeconds">{% if longest_wait %}{{ longest_wait.wait_seconds }}{% endif %}</span>s
+        </p>
+        <div id="queueBreakdownList" class="divide-y divide-gray-50">
+            {% for q in queue_breakdown %}
+            <div class="flex items-center justify-between py-1.5 queue-breakdown-row" data-queue="{{ q.name }}">
+                <span class="text-xs text-gray-800">{{ q.name }}</span>
+                <span class="queue-count-cell text-xs font-semibold text-amber-600">{{ q.count }}</span>
+            </div>
+            {% empty %}
+            <p id="queueBreakdownEmpty" class="text-[11px] text-gray-400 py-4 text-center">No callers waiting right now</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] font-semibold text-black">Top Agents Today</p>
+            <a href="{% url 'admin_agent_performance' %}" class="text-[10px] text-indigo-600 hover:underline">View All <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="divide-y divide-gray-50">
+            {% for row in top_agents %}
+            <div class="flex items-center justify-between py-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[9.5px] font-bold flex items-center justify-center shrink-0">{{ forloop.counter }}</span>
+                    <span class="text-xs text-gray-800">{{ row.name }}</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-700">{{ row.calls }} calls</span>
+            </div>
+            {% empty %}
+            <p class="text-[11px] text-gray-400 py-4 text-center">No queue calls handled yet today</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+    <div class="flex flex-col gap-4 h-full">
+        <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4 flex-1 flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+                <p class="text-[11px] font-semibold text-black">Active Auto Dial</p>
+                <a href="{% url 'admin_auto_dial' %}" class="text-[10px] text-indigo-600 hover:underline">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for c in active_auto_dials %}
+                <div class="py-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-800">{{ c.name }}</span>
+                        <span class="text-[10px] font-semibold {% if c.status == 'running' %}text-green-600{% else %}text-yellow-600{% endif %}">{{ c.get_status_display }}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+                        <div class="h-1.5 rounded-full bg-indigo-500" style="width: {{ c.progress_percent }}%"></div>
+                    </div>
+                    <p class="text-[9.5px] text-gray-400 mt-0.5">{{ c.dialed_count }} / {{ c.lead_count }} dialed</p>
+                </div>
+                {% empty %}
+                <p class="text-[11px] text-gray-400 py-4 text-center">No auto dial campaigns running right now</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4 flex-1 flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+                <p class="text-[11px] font-semibold text-black">Active Broadcasts</p>
+                <a href="{% url 'admin_broadcast' %}" class="text-[10px] text-indigo-600 hover:underline">View All <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for b in active_broadcasts %}
+                <div class="py-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-800">{{ b.name }}</span>
+                        <span class="text-[10px] font-semibold {% if b.status == 'running' %}text-green-600{% else %}text-yellow-600{% endif %}">{{ b.get_status_display }}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mt-1">
+                        <div class="h-1.5 rounded-full bg-indigo-500" style="width: {{ b.progress_percent }}%"></div>
+                    </div>
+                    <p class="text-[9.5px] text-gray-400 mt-0.5">{{ b.dialed_count }} / {{ b.lead_count }} dialed</p>
+                </div>
+                {% empty %}
+                <p class="text-[11px] text-gray-400 py-4 text-center">No broadcast campaigns running right now</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4 lg:col-span-2">
+        <div class="flex items-center justify-between mb-3">
+            <p class="text-[11px] font-semibold text-black">Recent Calls</p>
+            <a href="{% url 'admin_cdr' %}" class="text-[10px] text-indigo-600 hover:underline">View All <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="text-gray-400 text-left">
+                        <th class="font-medium py-1 pr-3">Time</th>
+                        <th class="font-medium py-1 pr-3">Caller</th>
+                        <th class="font-medium py-1 pr-3">Agent</th>
+                        <th class="font-medium py-1 pr-3">Duration</th>
+                        <th class="font-medium py-1">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 text-gray-700">
+                    {% for call in recent_calls %}
+                    <tr>
+                        <td class="py-0.5 pr-3 whitespace-nowrap text-gray-500">{{ call.time }}</td>
+                        <td class="py-0.5 pr-3 whitespace-nowrap">{{ call.caller }}</td>
+                        <td class="py-0.5 pr-3 whitespace-nowrap">{{ call.agent }}</td>
+                        <td class="py-0.5 pr-3 whitespace-nowrap">{{ call.duration }}</td>
+                        <td class="py-0.5 whitespace-nowrap">
+                            <span class="text-[10px] font-semibold {% if call.disposition == 'ANSWERED' %}text-green-600{% else %}text-red-500{% endif %}">{{ call.disposition }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5" class="py-4 text-center text-gray-400 text-[11px]">No calls yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-md shadow-sm border border-gray-100 p-4 mt-4 max-w-sm">
+    <div class="flex items-center justify-between mb-3">
+        <p class="text-[11px] font-semibold text-black">Server Performance</p>
+        <i class="fa-solid fa-server text-slate-500"></i>
+    </div>
+    <div class="space-y-3">
+        <div>
+            <div class="flex justify-between text-[10px] text-gray-500 mb-1">
+                <span><i class="fa-solid fa-microchip mr-1 text-slate-400"></i>CPU</span>
+                <span id="cpuText">{{ server_stats.cpu_percent|floatformat:0 }}%</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-1.5">
+                <div id="cpuBar" class="h-1.5 rounded-full {% if server_stats.cpu_percent >= 85 %}bg-red-500{% elif server_stats.cpu_percent >= 70 %}bg-amber-500{% else %}bg-indigo-500{% endif %}" style="width: {{ server_stats.cpu_percent }}%"></div>
+            </div>
+        </div>
+        <div>
+            <div class="flex justify-between text-[10px] text-gray-500 mb-1">
+                <span><i class="fa-solid fa-memory mr-1 text-slate-400"></i>RAM</span>
+                <span id="ramText">{{ server_stats.ram_used_gb|floatformat:1 }} / {{ server_stats.ram_total_gb|floatformat:1 }} GB ({{ server_stats.ram_percent|floatformat:0 }}%)</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-1.5">
+                <div id="ramBar" class="h-1.5 rounded-full {% if server_stats.ram_percent >= 85 %}bg-red-500{% elif server_stats.ram_percent >= 70 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ server_stats.ram_percent }}%"></div>
+            </div>
+        </div>
+        <div>
+            <div class="flex justify-between text-[10px] text-gray-500 mb-1">
+                <span><i class="fa-solid fa-hard-drive mr-1 text-slate-400"></i>Storage</span>
+                <span id="diskText">{{ server_stats.disk_used_gb|floatformat:1 }} / {{ server_stats.disk_total_gb|floatformat:1 }} GB ({{ server_stats.disk_percent|floatformat:0 }}%)</span>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-1.5">
+                <div id="diskBar" class="h-1.5 rounded-full {% if server_stats.disk_percent >= 85 %}bg-red-500{% elif server_stats.disk_percent >= 70 %}bg-amber-500{% else %}bg-sky-500{% endif %}" style="width: {{ server_stats.disk_percent }}%"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ agent_statuses|json_script:"agent-statuses-data" }}
+{{ hourly_call_volume|json_script:"hourly-volume-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    (function () {
+        const statusByExt = JSON.parse(document.getElementById('agent-statuses-data').textContent);
+
+        // Same color convention as the Monitoring page's own live status list, kept in sync so
+        // an agent's status color never disagrees between the two pages.
+        const STATUS_STYLE = {
+            'Available': 'text-green-600',
+            'On Call': 'text-indigo-600',
+            'Ringing': 'text-amber-600',
+            'Paused': 'text-yellow-600',
+        };
+
+        function render() {
+            const exts = Object.keys(statusByExt);
+            document.getElementById('statTotalLogin').textContent = exts.length;
+            document.getElementById('statTotalIncall').textContent = exts.filter(e => statusByExt[e] === 'On Call').length;
+        }
+
+        // Same red/amber/base thresholds as the server-rendered classes above, kept in sync so
+        // a live update never leaves the bar showing a stale color for its new percentage.
+        function barColorClass(percent, baseClass) {
+            if (percent >= 85) return 'bg-red-500';
+            if (percent >= 70) return 'bg-amber-500';
+            return baseClass;
+        }
+
+        function updateBar(barId, percent, baseClass) {
+            const bar = document.getElementById(barId);
+            bar.className = 'h-1.5 rounded-full ' + barColorClass(percent, baseClass);
+            bar.style.width = percent + '%';
+        }
+
+        function teamStatusRow(ext) {
+            return document.querySelector(`.team-status-row[data-ext="${ext}"]`);
+        }
+
+        function addTeamStatusRow(ext, name) {
+            if (teamStatusRow(ext)) return;
+            const empty = document.getElementById('teamStatusEmpty');
+            if (empty) empty.remove();
+            const row = document.createElement('div');
+            row.className = 'flex items-center justify-between py-1.5 team-status-row';
+            row.dataset.ext = ext;
+            row.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-[10px] font-semibold flex items-center justify-center shrink-0">${name.slice(0, 2).toUpperCase()}</span>
+                    <span class="text-xs text-gray-800">${name} <span class="text-gray-400 text-[10px]">(${ext})</span></span>
+                </div>
+                <span class="status-cell inline-flex items-center gap-1 text-[11px] text-green-600">
+                    <i class="fa-solid fa-circle text-[6px]"></i> Available
+                </span>`;
+            document.getElementById('teamStatusList').appendChild(row);
+        }
+
+        function removeTeamStatusRow(ext) {
+            const row = teamStatusRow(ext);
+            if (row) row.remove();
+            const list = document.getElementById('teamStatusList');
+            if (!list.querySelector('.team-status-row')) {
+                list.innerHTML = '<p id="teamStatusEmpty" class="text-[11px] text-gray-400 py-4 text-center">No agents currently logged in</p>';
+            }
+        }
+
+        function updateTeamStatusRow(ext, status) {
+            const row = teamStatusRow(ext);
+            if (!row) return;
+            const cell = row.querySelector('.status-cell');
+            cell.className = 'status-cell inline-flex items-center gap-1 text-[11px] ' + (STATUS_STYLE[status] || 'text-gray-400');
+            cell.innerHTML = `<i class="fa-solid fa-circle text-[6px]"></i> ${status}`;
+        }
+
+        function renderQueueBreakdown(callers) {
+            const counts = {};
+            callers.forEach(c => { if (c.queue) counts[c.queue] = (counts[c.queue] || 0) + 1; });
+            const names = Object.keys(counts).sort((a, b) => counts[b] - counts[a] || a.localeCompare(b));
+            const list = document.getElementById('queueBreakdownList');
+            if (names.length === 0) {
+                list.innerHTML = '<p id="queueBreakdownEmpty" class="text-[11px] text-gray-400 py-4 text-center">No callers waiting right now</p>';
+                return;
+            }
+            list.innerHTML = names.map(name => `
+                <div class="flex items-center justify-between py-1.5 queue-breakdown-row" data-queue="${name}">
+                    <span class="text-xs text-gray-800">${name}</span>
+                    <span class="queue-count-cell text-xs font-semibold text-amber-600">${counts[name]}</span>
+                </div>`).join('');
+        }
+
+        function renderLongestWait(callers) {
+            const line = document.getElementById('longestWaitLine');
+            if (!callers.length) {
+                line.classList.add('hidden');
+                return;
+            }
+            const longest = callers.reduce((a, b) => a.joined_at < b.joined_at ? a : b);
+            const waitSeconds = Math.max(Math.floor(Date.now() / 1000 - longest.joined_at), 0);
+            line.classList.remove('hidden');
+            line.querySelector('.font-semibold').textContent = `${longest.caller} (${longest.queue})`;
+            document.getElementById('longestWaitSeconds').textContent = waitSeconds;
+        }
+
+        function connect() {
+            const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const socket = new WebSocket(`${scheme}://${window.location.host}/ws/realtime/`);
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                if (data.kind === 'agent_login') {
+                    statusByExt[data.ext] = 'Available';
+                    addTeamStatusRow(data.ext, data.name);
+                } else if (data.kind === 'agent_logout') {
+                    delete statusByExt[data.ext];
+                    removeTeamStatusRow(data.ext);
+                } else if (data.kind === 'status' && data.ext in statusByExt) {
+                    statusByExt[data.ext] = data.status;
+                    updateTeamStatusRow(data.ext, data.status);
+                } else if (data.kind === 'queue_update') {
+                    document.getElementById('statLiveQueue').textContent = data.callers.length;
+                    renderQueueBreakdown(data.callers);
+                    renderLongestWait(data.callers);
+                    return;
+                } else if (data.kind === 'drop_call_resolved') {
+                    const el = document.getElementById('statMissedCalls');
+                    el.textContent = Math.max(parseInt(el.textContent, 10) - 1, 0);
+                    return;
+                } else if (data.kind === 'server_stats') {
+                    document.getElementById('cpuText').textContent = Math.round(data.cpu_percent) + '%';
+                    updateBar('cpuBar', data.cpu_percent, 'bg-indigo-500');
+                    document.getElementById('ramText').textContent = data.ram_used_gb.toFixed(1) + ' / ' + data.ram_total_gb.toFixed(1) + ' GB (' + Math.round(data.ram_percent) + '%)';
+                    updateBar('ramBar', data.ram_percent, 'bg-emerald-500');
+                    document.getElementById('diskText').textContent = data.disk_used_gb.toFixed(1) + ' / ' + data.disk_total_gb.toFixed(1) + ' GB (' + Math.round(data.disk_percent) + '%)';
+                    updateBar('diskBar', data.disk_percent, 'bg-sky-500');
+                    return;
+                } else {
+                    return;
+                }
+                render();
+            };
+            socket.onclose = function () { setTimeout(connect, 3000); };
+        }
+        connect();
+
+        const hourlyVolume = JSON.parse(document.getElementById('hourly-volume-data').textContent);
+        new Chart(document.getElementById('hourlyVolumeChart'), {
+            type: 'bar',
+            data: {
+                labels: Array.from({length: 24}, (_, h) => h.toString().padStart(2, '0') + ':00'),
+                datasets: [{
+                    data: hourlyVolume,
+                    backgroundColor: '#6366f1',
+                    borderRadius: 3,
+                    maxBarThickness: 18,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0, font: { size: 9 } } },
+                    x: { ticks: { font: { size: 8 } } },
+                },
+            },
+        });
+    })();
+</script>
+{% endblock %}

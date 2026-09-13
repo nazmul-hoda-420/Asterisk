@@ -1,0 +1,241 @@
+{% extends 'admin/base.html' %}
+{% block title %}Monitoring{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-5">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">Monitoring</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Listen, whisper or barge into any live call</p>
+    </div>
+    <span class="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium">
+        <i class="fa-solid fa-circle text-[7px] animate-pulse"></i> Live
+    </span>
+</div>
+
+<!-- Active calls -->
+<div class="bg-white rounded-md shadow-sm border border-gray-100 overflow-hidden mb-5">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div class="flex items-center gap-4 text-[11px] text-gray-500">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-ear-listen text-indigo-500"></i> Spy — listen silently</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-comment-dots text-yellow-500"></i> Whisper — coach the agent only</span>
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-right-to-bracket text-red-500"></i> Barge — join the call</span>
+        </div>
+        <input type="text" placeholder="Search agent or number..." class="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 w-56 focus:outline-none focus:ring-1 focus:ring-indigo-400">
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-xs">
+            <thead class="bg-slate-100 border-b border-slate-200">
+                <tr>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-left w-10">S/N</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-left">User</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-left">Group</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-left">Duration</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-left">Status</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Monitor</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody id="monitorTbody" class="divide-y divide-gray-100">
+                {% for agent in agents %}
+                <tr class="hover:bg-gray-50" data-ext="{{ agent.id }}">
+                    <td class="px-4 py-3 text-gray-600">{{ forloop.counter }}</td>
+                    <td class="px-4 py-3 text-gray-800 font-medium">{{ agent.assigned_user.full_name|default:agent.id }} <span class="text-black text-[10px]">({{ agent.id }})</span></td>
+                    <td class="px-4 py-3 text-gray-600">{{ agent.queue_names }}</td>
+                    <td class="px-4 py-3 text-gray-600 duration-cell" data-since="{{ agent.status_since|default:'' }}">—</td>
+                    <td class="px-4 py-3 status-cell">
+                        <span class="inline-flex items-center gap-1 text-[11px]
+                            {% if agent.status == 'Available' %}text-green-600
+                            {% elif agent.status == 'On Call' %}text-indigo-600
+                            {% elif agent.status == 'Ringing' %}text-amber-600
+                            {% elif agent.status == 'Paused' %}text-yellow-600
+                            {% else %}text-gray-400{% endif %}">
+                            <i class="fa-solid fa-circle text-[6px]"></i> {{ agent.status }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="monitorAction(this, 'spy')" class="text-indigo-500 hover:text-indigo-700 px-1" title="Spy"><i class="fa-solid fa-ear-listen"></i></button>
+                        <button onclick="monitorAction(this, 'whisper')" class="text-yellow-500 hover:text-yellow-700 px-1" title="Whisper"><i class="fa-solid fa-comment-dots"></i></button>
+                        <button onclick="monitorAction(this, 'barge')" class="text-red-500 hover:text-red-700 px-1" title="Barge"><i class="fa-solid fa-right-to-bracket"></i></button>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="forceLogout(this)" class="text-rose-500 hover:text-rose-700 px-1" title="Force Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr id="monitorEmptyRow">
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-400 text-[11px]">No agents found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- WebRTC session -- registers the admin's own extension silently in the background so
+     Spy/Whisper/Barge can dial the *55/*56/*57 feature codes directly, no dialer UI shown. -->
+<div id="webrtcWidgetContainer" class="hidden">
+    {% include 'user/webrtc.html' %}
+</div>
+<div id="monitorCallBar" class="hidden fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-gray-900 text-white pl-4 pr-2 py-2 rounded-full shadow-lg shadow-black/30">
+    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+    <div class="flex flex-col leading-tight">
+        <span id="monitorCallLabel" class="text-xs font-semibold">—</span>
+        <span id="monitorCallTimer" class="text-[10px] text-gray-400 font-mono">00:00</span>
+    </div>
+    <button onclick="hangup()" title="Hang up" class="w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition">
+        <i class="fa-solid fa-phone-slash text-sm"></i>
+    </button>
+</div>
+<script>
+    const MONITOR_MODE_LABEL = { spy: 'Spying', whisper: 'Whispering', barge: 'Barging' };
+    let monitorCallInfo = null;
+
+    (function watchMonitorCallState() {
+        const bar = document.getElementById('monitorCallBar');
+        const labelEl = document.getElementById('monitorCallLabel');
+        const timerEl = document.getElementById('monitorCallTimer');
+        setInterval(() => {
+            const active = (typeof currentSession !== 'undefined' && currentSession) ||
+                            (typeof pendingSession !== 'undefined' && pendingSession);
+            bar.classList.toggle('hidden', !active);
+            if (active && monitorCallInfo) {
+                labelEl.textContent = `${MONITOR_MODE_LABEL[monitorCallInfo.mode]} ${monitorCallInfo.ext}`;
+            }
+            const timerText = document.getElementById('callTimer');
+            if (active && timerText) timerEl.textContent = /^\d{2}:\d{2}$/.test(timerText.innerText) ? timerText.innerText : '00:00';
+            if (!active) monitorCallInfo = null;
+        }, 500);
+    })();
+
+    const STATUS_STYLE = {
+        'Available': ['text-green-600', 'Available'],
+        'On Call': ['text-indigo-600', 'On Call'],
+        'Ringing': ['text-amber-600', 'Ringing'],
+        'Paused': ['text-yellow-600', 'Paused'],
+        'Unavailable': ['text-gray-400', 'Unavailable'],
+        'Unknown': ['text-gray-400', 'Unknown'],
+    };
+
+    function createAgentRow(ext, name, queues) {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+        tr.dataset.ext = ext;
+        const serial = document.querySelectorAll('#monitorTbody tr[data-ext]').length + 1;
+        tr.innerHTML = `
+            <td class="px-4 py-3 text-gray-600">${serial}</td>
+            <td class="px-4 py-3 text-gray-800 font-medium">${name} <span class="text-black text-[10px]">(${ext})</span></td>
+            <td class="px-4 py-3 text-gray-600">${queues}</td>
+            <td class="px-4 py-3 text-gray-600 duration-cell" data-since="">—</td>
+            <td class="px-4 py-3 status-cell"><span class="inline-flex items-center gap-1 text-gray-400 text-[11px]"><i class="fa-solid fa-circle text-[6px]"></i> Unknown</span></td>
+            <td class="px-4 py-3 text-right">
+                <button onclick="monitorAction(this, 'spy')" class="text-indigo-500 hover:text-indigo-700 px-1" title="Spy"><i class="fa-solid fa-ear-listen"></i></button>
+                <button onclick="monitorAction(this, 'whisper')" class="text-yellow-500 hover:text-yellow-700 px-1" title="Whisper"><i class="fa-solid fa-comment-dots"></i></button>
+                <button onclick="monitorAction(this, 'barge')" class="text-red-500 hover:text-red-700 px-1" title="Barge"><i class="fa-solid fa-right-to-bracket"></i></button>
+            </td>
+            <td class="px-4 py-3 text-right">
+                <button onclick="forceLogout(this)" class="text-rose-500 hover:text-rose-700 px-1" title="Force Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </td>`;
+        return tr;
+    }
+
+    function handleAgentLogin(data) {
+        if (document.querySelector(`tr[data-ext="${data.ext}"]`)) return;
+        const emptyRow = document.getElementById('monitorEmptyRow');
+        if (emptyRow) emptyRow.remove();
+        document.getElementById('monitorTbody').appendChild(createAgentRow(data.ext, data.name, data.queues));
+    }
+
+    function handleAgentLogout(data) {
+        const row = document.querySelector(`tr[data-ext="${data.ext}"]`);
+        if (row) row.remove();
+        const tbody = document.getElementById('monitorTbody');
+        if (!tbody.querySelector('tr')) {
+            tbody.innerHTML = '<tr id="monitorEmptyRow"><td colspan="7" class="px-4 py-8 text-center text-gray-400 text-[11px]">No agents found</td></tr>';
+        }
+    }
+
+    function connectMonitoringSocket() {
+        const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(`${scheme}://${window.location.host}/ws/realtime/`);
+
+        socket.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+            if (data.kind === 'agent_login') { handleAgentLogin(data); return; }
+            if (data.kind === 'agent_logout') { handleAgentLogout(data); return; }
+
+            const row = document.querySelector(`tr[data-ext="${data.ext}"]`);
+            if (!row) return;
+            const [colorClass, label] = STATUS_STYLE[data.status] || STATUS_STYLE['Unknown'];
+            const cell = row.querySelector('.status-cell');
+            cell.innerHTML = `<span class="inline-flex items-center gap-1 ${colorClass} text-[11px]"><i class="fa-solid fa-circle text-[6px]"></i> ${label}</span>`;
+            const durationCell = row.querySelector('.duration-cell');
+            if (durationCell && data.since) durationCell.dataset.since = data.since;
+        };
+
+        socket.onclose = function () {
+            setTimeout(connectMonitoringSocket, 3000);
+        };
+    }
+
+    connectMonitoringSocket();
+
+    function formatDuration(seconds) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        const mm = String(m).padStart(2, '0');
+        const ss = String(s).padStart(2, '0');
+        return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+    }
+
+    setInterval(() => {
+        const now = Date.now() / 1000;
+        document.querySelectorAll('.duration-cell').forEach(cell => {
+            const since = parseFloat(cell.dataset.since);
+            if (!since) return;
+            cell.textContent = formatDuration(Math.max(0, now - since));
+        });
+    }, 1000);
+
+    function getCsrfToken() {
+        const match = document.cookie.match(/csrftoken=([^;]+)/);
+        return match ? match[1] : '';
+    }
+
+    function forceLogout(btn) {
+        const row = btn.closest('tr');
+        const ext = row.dataset.ext;
+        const name = row.querySelector('td').textContent.trim();
+        if (!confirm(`Log out ${name} now? This ends their web session and drops their phone registration.`)) return;
+        btn.disabled = true;
+        fetch(`/admin/monitoring/${ext}/force-logout/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCsrfToken() },
+        }).then(() => window.location.reload());
+    }
+
+    const MONITOR_FEATURE_CODE = { spy: '*55', whisper: '*56', barge: '*57' };
+
+    function monitorAction(btn, mode) {
+        if (typeof ua === 'undefined' || !ua || !ua.isConnected()) {
+            alert('Your WebRTC phone is not connected yet -- please wait a moment and try again.');
+            return;
+        }
+        const row = btn.closest('tr');
+        const ext = row.dataset.ext;
+        const startCall = () => {
+            monitorCallInfo = { mode, ext };
+            document.getElementById('dialedNumber').value = MONITOR_FEATURE_CODE[mode] + ext;
+            makeCall();
+        };
+        if (currentSession || pendingSession) {
+            // Already monitoring someone -- switch straight to the new target/mode instead of
+            // blocking with "Busy" (makeCall() refuses to start a second call on top of one).
+            hangup();
+            setTimeout(startCall, 300);
+        } else {
+            startCall();
+        }
+    }
+</script>
+{% endblock %}

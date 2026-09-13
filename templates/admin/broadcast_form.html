@@ -1,0 +1,281 @@
+{% extends 'admin/base.html' %}
+{% block title %}{% if broadcast %}Edit Broadcast{% else %}Create Broadcast{% endif %}{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-4">
+    <a href="{% url 'admin_broadcast' %}"
+       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-indigo-100 text-indigo-600 text-[11px] font-bold hover:bg-indigo-600 hover:text-white transition shrink-0">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i> Back
+    </a>
+</div>
+
+<div class="max-w-xl mx-auto">
+<form method="post" id="broadcastForm" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+    {% csrf_token %}
+    <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <i class="fas fa-bullhorn text-[10px]"></i> {% if broadcast %}Edit Broadcast{% else %}Create Broadcast{% endif %}
+    </h3>
+    <!-- Name -->
+    <div class="mb-4">
+        <label for="broadcastName" class="block text-[11px] font-semibold text-slate-600 mb-1">Name</label>
+        <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-tag text-gray-400 text-sm"></i>
+            </div>
+            <input type="text" id="broadcastName" name="name" placeholder="e.g. Eid Holiday Notice" value="{{ broadcast.name|default:'' }}"
+                   class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs placeholder:text-[11px]">
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- Lead List -->
+        <div>
+            <label for="broadcastLeadList" class="block text-[11px] font-semibold text-slate-600 mb-1">Lead List</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-address-book text-gray-400 text-sm"></i>
+                </div>
+                <select id="broadcastLeadList" name="lead_list" class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+                    <option value="">Select...</option>
+                    {% for lead_list in lead_lists %}
+                    <option value="{{ lead_list.id }}" {% if broadcast.lead_list_id == lead_list.id %}selected{% endif %}>{{ lead_list.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Sound -->
+        <div>
+            <label for="broadcastSound" class="block text-[11px] font-semibold text-slate-600 mb-1">Audio</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-file-audio text-gray-400 text-sm"></i>
+                </div>
+                <select id="broadcastSound" name="sound" class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+                    <option value="">Select...</option>
+                    {% for sound in sounds %}
+                    <option value="{{ sound.id }}" {% if broadcast.sound_id == sound.id %}selected{% endif %}>{{ sound.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Trunk -->
+        <div>
+            <label for="broadcastTrunk" class="block text-[11px] font-semibold text-slate-600 mb-1">Trunk</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-network-wired text-gray-400 text-sm"></i>
+                </div>
+                <select id="broadcastTrunk" name="trunk" class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+                    <option value="">Select...</option>
+                    {% for trunk in trunks %}
+                    <option value="{{ trunk.id }}" {% if broadcast.trunk_id == trunk.id %}selected{% endif %}>{{ trunk.id }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Concurrent Calls -->
+        <div>
+            <label for="broadcastConcurrency" class="block text-[11px] font-semibold text-slate-600 mb-1">Concurrent Calls</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-layer-group text-gray-400 text-sm"></i>
+                </div>
+                <input type="number" id="broadcastConcurrency" name="concurrent_calls" value="{{ broadcast.concurrent_calls|default:5 }}" min="1" max="50"
+                       class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <!-- Scheduled start (optional) -->
+        <div>
+            <label for="broadcastScheduledAt" class="block text-[11px] font-semibold text-slate-600 mb-1">Schedule Start <span class="text-slate-400 font-normal">(optional)</span></label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-clock text-gray-400 text-sm"></i>
+                </div>
+                <input type="datetime-local" id="broadcastScheduledAt" name="scheduled_at" value="{{ scheduled_at_local }}"
+                       class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+            </div>
+        </div>
+
+        <!-- Scheduled end (optional) -->
+        <div>
+            <label for="broadcastScheduledEndAt" class="block text-[11px] font-semibold text-slate-600 mb-1">Schedule End <span class="text-slate-400 font-normal">(optional)</span></label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-clock text-gray-400 text-sm"></i>
+                </div>
+                <input type="datetime-local" id="broadcastScheduledEndAt" name="scheduled_end_at" value="{{ scheduled_end_at_local }}"
+                       class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 text-xs">
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-[11px] font-semibold text-slate-600">Press-Digit Menu <span class="text-slate-400 font-normal">(optional — leave empty for a plain play-and-hangup message)</span></p>
+            <button type="button" id="addBroadcastOptionBtn" class="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800">
+                <i class="fa-solid fa-plus text-[9px]"></i> Add Key
+            </button>
+        </div>
+
+        {{ formset.management_form }}
+        <div id="broadcastOptionsList" class="space-y-1.5">
+            {% for opt_form in formset %}
+            <div class="flex items-center gap-2 broadcast-option-row">
+                {{ opt_form.id }}
+                <span class="text-[10px] text-gray-400 font-medium shrink-0">Key</span>
+                {{ opt_form.digit }}
+                <i class="fa-solid fa-arrow-right-long text-gray-300 text-[11px] shrink-0"></i>
+                {{ opt_form.destination_type }}
+                <select data-broadcast-dest="queue" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                    <option value="">Select group&hellip;</option>
+                    {% for q in queues %}
+                    <option value="{{ q.name }}">{{ q.name }}</option>
+                    {% endfor %}
+                </select>
+                <select data-broadcast-dest="extension" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                    <option value="">Select user&hellip;</option>
+                    {% for ext in extensions %}
+                    <option value="{{ ext.id }}">{{ ext.id }}{% if ext.assigned_user.full_name %} — {{ ext.assigned_user.full_name }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+                <select data-broadcast-dest="ivr" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                    <option value="">Select IVR&hellip;</option>
+                    {% for iv in ivrs %}
+                    <option value="{{ iv.name }}">{{ iv.name }}</option>
+                    {% endfor %}
+                </select>
+                <select data-broadcast-dest="hangup" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                    <option value="">No sound — hang up immediately</option>
+                    {% for s in sounds %}
+                    <option value="{{ s.id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+                {{ opt_form.destination_id }}
+                <span class="hidden">{{ opt_form.DELETE }}</span>
+                <button type="button" class="remove-broadcast-option-btn shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                    <i class="fa-solid fa-xmark text-[11px]"></i>
+                </button>
+            </div>
+            {% if opt_form.non_field_errors %}<p class="text-red-500 text-[10px] ml-10">{{ opt_form.non_field_errors.0 }}</p>{% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="flex justify-end gap-2 mt-4">
+        <a href="{% url 'admin_broadcast' %}" class="px-5 py-1.5 border border-gray-300 text-gray-600 text-[11px] font-bold rounded-sm hover:bg-gray-50">Cancel</a>
+        <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">{% if broadcast %}Save Changes{% else %}Save Broadcast{% endif %}</button>
+    </div>
+
+    <template id="broadcastOptionRowTemplate">
+        <div class="flex items-center gap-2 broadcast-option-row">
+            {{ formset.empty_form.id }}
+            <span class="text-[10px] text-gray-400 font-medium shrink-0">Key</span>
+            {{ formset.empty_form.digit }}
+            <i class="fa-solid fa-arrow-right-long text-gray-300 text-[11px] shrink-0"></i>
+            {{ formset.empty_form.destination_type }}
+            <select data-broadcast-dest="queue" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                <option value="">Select group&hellip;</option>
+                {% for q in queues %}
+                <option value="{{ q.name }}">{{ q.name }}</option>
+                {% endfor %}
+            </select>
+            <select data-broadcast-dest="extension" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                <option value="">Select user&hellip;</option>
+                {% for ext in extensions %}
+                <option value="{{ ext.id }}">{{ ext.id }}{% if ext.assigned_user.full_name %} — {{ ext.assigned_user.full_name }}{% endif %}</option>
+                {% endfor %}
+            </select>
+            <select data-broadcast-dest="ivr" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                <option value="">Select IVR&hellip;</option>
+                {% for iv in ivrs %}
+                <option value="{{ iv.name }}">{{ iv.name }}</option>
+                {% endfor %}
+            </select>
+            <select data-broadcast-dest="hangup" class="hidden flex-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-gray-100 bg-white px-2 py-1.5">
+                <option value="">No sound — hang up immediately</option>
+                {% for s in sounds %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
+                {% endfor %}
+            </select>
+            {{ formset.empty_form.destination_id }}
+            <span class="hidden">{{ formset.empty_form.DELETE }}</span>
+            <button type="button" class="remove-broadcast-option-btn shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                <i class="fa-solid fa-xmark text-[11px]"></i>
+            </button>
+        </div>
+    </template>
+</form>
+</div>
+
+<script>
+  (function() {
+    const optionsList = document.getElementById('broadcastOptionsList');
+    const rowTemplate = document.getElementById('broadcastOptionRowTemplate').innerHTML;
+    const totalFormsInput = document.getElementById('id_options-TOTAL_FORMS');
+    const addOptionBtn = document.getElementById('addBroadcastOptionBtn');
+
+    function initRow(row) {
+      const typeSelect = row.querySelector('.broadcast-opt-type');
+      const destSelects = row.querySelectorAll('[data-broadcast-dest]');
+      const hiddenDest = row.querySelector('.broadcast-opt-dest-id');
+
+      function sync() {
+        destSelects.forEach(function(sel) {
+          if (sel.dataset.broadcastDest === typeSelect.value) {
+            sel.classList.remove('hidden');
+            sel.value = hiddenDest.value;
+          } else {
+            sel.classList.add('hidden');
+          }
+        });
+        // An unselected type needs no destination at all -- 'hangup' now has its own optional
+        // sound-select above, so it's no longer special-cased here.
+        if (!typeSelect.value) { hiddenDest.value = ''; }
+      }
+
+      typeSelect.addEventListener('change', function() {
+        hiddenDest.value = '';
+        sync();
+      });
+      destSelects.forEach(function(sel) {
+        sel.addEventListener('change', function() { hiddenDest.value = sel.value; });
+      });
+      sync();
+
+      row.querySelector('.remove-broadcast-option-btn').addEventListener('click', function() {
+        const idInput = row.querySelector('input[name$="-id"]');
+        const deleteInput = row.querySelector('input[name$="-DELETE"]');
+        if (idInput && idInput.value) {
+          if (deleteInput) { deleteInput.checked = true; }
+          row.classList.add('hidden');
+        } else {
+          row.remove();
+        }
+      });
+    }
+
+    function addOptionRow() {
+      const index = parseInt(totalFormsInput.value, 10);
+      const html = rowTemplate.split('__prefix__').join(index);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html.trim();
+      const row = wrapper.firstElementChild;
+      optionsList.appendChild(row);
+      totalFormsInput.value = index + 1;
+      initRow(row);
+      return row;
+    }
+
+    addOptionBtn.addEventListener('click', addOptionRow);
+    Array.from(optionsList.children).forEach(initRow);
+  })();
+</script>
+{% endblock %}

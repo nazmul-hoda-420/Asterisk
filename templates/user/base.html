@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Agent{% endblock %}</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body class="bg-gray-50 text-sm">
+    <!-- Toast Notifications -->
+    {% if messages %}
+    <div id="toastContainer" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 w-[320px] pointer-events-none">
+      {% for message in messages %}
+
+        {% if message.tags == 'success' %}
+        <div class="toast-item pointer-events-auto flex items-center gap-3 bg-green-50 border border-green-200 rounded-md px-4 py-3 shadow-lg shadow-green-500/10 overflow-hidden relative" role="alert">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-l-md"></div>
+          <div class="w-7 h-7 rounded-md bg-green-100 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-circle-check text-green-600 text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-green-800 leading-tight">Success!</p>
+            <p class="text-[11px] text-green-700 leading-snug mt-0.5">{{ message }}</p>
+            <div class="toast-progress mt-2 h-0.5 bg-green-100 rounded-full overflow-hidden">
+              <div class="toast-bar h-full bg-green-500 rounded-full"></div>
+            </div>
+          </div>
+          <button onclick="dismissToast(this)" class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md hover:bg-green-100 transition-colors">
+            <i class="fa-solid fa-xmark text-green-400 text-[10px]"></i>
+          </button>
+        </div>
+
+        {% elif message.tags == 'error' %}
+        <div class="toast-item pointer-events-auto flex items-center gap-3 bg-red-50 border border-red-200 rounded-md px-4 py-3 shadow-lg shadow-red-500/10 overflow-hidden relative" role="alert">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-500 rounded-l-md"></div>
+          <div class="w-7 h-7 rounded-md bg-red-100 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-circle-xmark text-red-600 text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-red-800 leading-tight">Error!</p>
+            <p class="text-[11px] text-red-700 leading-snug mt-0.5">{{ message }}</p>
+            <div class="toast-progress mt-2 h-0.5 bg-red-100 rounded-full overflow-hidden">
+              <div class="toast-bar h-full bg-red-500 rounded-full"></div>
+            </div>
+          </div>
+          <button onclick="dismissToast(this)" class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md hover:bg-red-100 transition-colors">
+            <i class="fa-solid fa-xmark text-red-400 text-[10px]"></i>
+          </button>
+        </div>
+
+        {% elif message.tags == 'warning' %}
+        <div class="toast-item pointer-events-auto flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-md px-4 py-3 shadow-lg shadow-yellow-500/10 overflow-hidden relative" role="alert">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-yellow-500 rounded-l-md"></div>
+          <div class="w-7 h-7 rounded-md bg-yellow-100 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-triangle-exclamation text-yellow-600 text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-yellow-800 leading-tight">Warning!</p>
+            <p class="text-[11px] text-yellow-700 leading-snug mt-0.5">{{ message }}</p>
+            <div class="toast-progress mt-2 h-0.5 bg-yellow-100 rounded-full overflow-hidden">
+              <div class="toast-bar h-full bg-yellow-500 rounded-full"></div>
+            </div>
+          </div>
+          <button onclick="dismissToast(this)" class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md hover:bg-yellow-100 transition-colors">
+            <i class="fa-solid fa-xmark text-yellow-400 text-[10px]"></i>
+          </button>
+        </div>
+
+        {% else %}
+        <div class="toast-item pointer-events-auto flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-md px-4 py-3 shadow-lg shadow-blue-500/10 overflow-hidden relative" role="alert">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l-md"></div>
+          <div class="w-7 h-7 rounded-md bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-circle-info text-blue-600 text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-blue-800 leading-tight">Heads up!</p>
+            <p class="text-[11px] text-blue-700 leading-snug mt-0.5">{{ message }}</p>
+            <div class="toast-progress mt-2 h-0.5 bg-blue-100 rounded-full overflow-hidden">
+              <div class="toast-bar h-full bg-blue-500 rounded-full"></div>
+            </div>
+          </div>
+          <button onclick="dismissToast(this)" class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md hover:bg-blue-100 transition-colors">
+            <i class="fa-solid fa-xmark text-blue-400 text-[10px]"></i>
+          </button>
+        </div>
+        {% endif %}
+
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <style>
+      .toast-item {
+        animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.26, 0.64, 1) forwards;
+      }
+      .toast-item.removing {
+        animation: toastSlideOut 0.5s ease-in-out forwards;
+      }
+      .toast-bar {
+        width: 100%;
+        animation: toastProgress 5s linear forwards;
+      }
+      @keyframes toastSlideIn {
+        from { transform: translateX(110%); opacity: 0; }
+        to   { transform: translateX(0);    opacity: 1; }
+      }
+      @keyframes toastSlideOut {
+        from { transform: translateX(0); opacity: 1; max-height: 120px; margin-bottom: 10px; }
+        to   { transform: translateX(110%); opacity: 0; max-height: 0; margin-bottom: 0; }
+      }
+      @keyframes toastProgress {
+        from { width: 100%; }
+        to   { width: 0%; }
+      }
+    </style>
+
+    <script>
+      function dismissToast(btn) {
+        const toast = btn.closest('.toast-item');
+        if (toast) {
+          toast.classList.remove('animate-slide-in');
+          toast.classList.add('removing');
+          setTimeout(() => {
+            if (toast && toast.parentNode) {
+              toast.remove();
+            }
+          }, 500);
+        }
+      }
+
+      document.querySelectorAll('.toast-item').forEach((toast, i) => {
+        setTimeout(() => {
+          if (toast && toast.parentNode) {
+            toast.classList.add('removing');
+            setTimeout(() => {
+              if (toast && toast.parentNode) {
+                toast.remove();
+              }
+            }, 500);
+          }
+        }, 5000 + i * 400);
+      });
+    </script>
+
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="w-48 shrink-0 bg-[#140d38] border-r border-[#1f1650] hidden md:flex md:flex-col h-screen sticky top-0">
+            <!-- Profile Section -->
+            <div class="flex items-center gap-2.5 px-3.5 py-4 border-b border-gray-800 bg-gray-900/50">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-500/20 flex-shrink-0">{{ request.user.full_name|default:request.user.username|slice:":2"|upper }}</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-semibold text-white truncate">{{ request.user.full_name|default:request.user.username }}</p>
+                    <p class="text-[11px] text-white truncate flex items-center gap-1 mt-0.5">
+                        <i class="fa-regular fa-user text-[8px]"></i>
+                        <span class="truncate">{{ request.user.username }}</span>
+                        <span class="text-green-400 font-medium">(User)</span>
+                    </p>
+                </div>
+            </div>
+            <nav id="sidebar-nav" class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+                <a href="javascript:void(0)" id="nav-dashboard" onclick="showTab('dashboard', this)" class="nav-link flex items-center gap-2.5 px-3 py-1.5 border-l-4 border-transparent text-xs text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-gauge w-3.5 text-[11px]"></i> Dashboard
+                </a>
+                <a href="javascript:void(0)" id="nav-crm" onclick="showTab('crm', this)" class="nav-link flex items-center gap-2.5 px-3 py-1.5 border-l-4 border-transparent text-xs text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-address-book w-3.5 text-[11px]"></i> CRM
+                </a>
+                <a href="javascript:void(0)" id="nav-my_calls" onclick="showTab('my_calls', this)" class="nav-link flex items-center gap-2.5 px-3 py-1.5 border-l-4 border-transparent text-xs text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-solid fa-clock-rotate-left w-3.5 text-[11px]"></i> CDR
+                </a>
+                <a href="javascript:void(0)" id="nav-whatsapp" onclick="showTab('whatsapp', this)" class="nav-link flex items-center gap-2.5 px-3 py-1.5 border-l-4 border-transparent text-xs text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-brands fa-whatsapp w-3.5 text-[11px]"></i> WhatsApp
+                </a>
+                <a href="javascript:void(0)" id="nav-facebook" onclick="showTab('facebook', this)" class="nav-link flex items-center gap-2.5 px-3 py-1.5 border-l-4 border-transparent text-xs text-gray-300 hover:bg-white/10 hover:text-white">
+                    <i class="fa-brands fa-facebook-messenger w-3.5 text-[11px]"></i> Facebook
+                </a>
+            </nav>
+
+            <!-- Persistent phone status -- mirrors the WebRTC widget's own connection state
+                 (polled, not wired into webrtc.html) so it stays accurate without touching that
+                 file. Clicking opens the same dialer widget as the floating button. Only shown
+                 for phone_type='webrtc' agents (see core.processor.webrtc_credentials) -- a
+                 'softphone' agent uses their own physical/app phone instead, and registering
+                 this widget for them would just fight that phone over the AOR's one contact
+                 slot instead of giving them a working second device. -->
+            {% if extension %}
+            <button onclick="toggleDialerWidget()" class="mx-2 mb-2 flex items-center gap-2 px-3 py-2 rounded bg-white/5 hover:bg-white/10 transition text-left">
+                <span id="sidebarPhoneDot" class="w-2 h-2 rounded-full bg-gray-500 shrink-0"></span>
+                <span class="flex-1 min-w-0 text-[11px] text-gray-300 truncate">Phone</span>
+                <span class="flex items-center gap-0.5 shrink-0">
+                    <i class="fa-solid fa-mobile-screen-button text-gray-400 text-xs"></i>
+                    <span id="sidebarPhoneToggleIcon" class="text-gray-400 text-xs font-bold w-3 text-center">+</span>
+                </span>
+            </button>
+            {% endif %}
+
+            <div class="px-2 pb-3 border-t border-[#1f1650] pt-3">
+                <a href="{% url 'logout' %}" class="flex items-center gap-2.5 px-3 py-1.5 rounded text-red-400 hover:bg-red-500/10 hover:text-red-300 text-xs">
+                    <i class="fa-solid fa-right-from-bracket w-3.5 text-[11px]"></i> Logout
+                </a>
+                <p class="text-center text-[10px] text-gray-500 mt-3">&copy; Nazmul Hoda 2026 &middot; v1.0.0</p>
+            </div>
+        </aside>
+
+        <!-- Embedded WebRTC widget: rendered once, outside the tab sections below. Tab
+             switching only toggles visibility classes on already-loaded content (no
+             navigation, no page reload), so the JsSIP connection inside webrtc.html stays
+             alive the whole time the agent is on this page. Hidden by default; the dialer
+             icon below toggles it open/closed. -->
+        {% if extension %}
+        <div id="webrtcWidgetContainer" class="hidden fixed bottom-24 right-6 z-50">
+            {% include 'user/webrtc.html' %}
+        </div>
+        {% endif %}
+
+        <style>
+            .nav-link.nav-active {
+                background-color: rgba(255, 255, 255, 0.1);
+                color: #fff;
+                font-weight: 500;
+                border-left-color: #818cf8;
+            }
+        </style>
+
+        <script>
+            // Tab switching is plain visibility toggling within one already-loaded page — no
+            // navigation, no page reload, so the embedded WebRTC widget below is never touched.
+            function showTab(tabId, navEl) {
+                document.querySelectorAll('.tab-content').forEach(function(section) {
+                    section.classList.remove('block');
+                    section.classList.add('hidden');
+                });
+                var target = document.getElementById('tab-' + tabId);
+                if (target) {
+                    target.classList.remove('hidden');
+                    target.classList.add('block');
+                }
+                document.querySelectorAll('.nav-link').forEach(function(link) {
+                    link.classList.remove('nav-active');
+                });
+                if (navEl) navEl.classList.add('nav-active');
+
+                // Keep the URL's ?tab= in sync with whatever's actually showing, so a reload
+                // (or the redirect-after-POST from a form on another tab) lands on the tab the
+                // agent was last looking at, not whatever tab happened to be active when the
+                // page was first loaded.
+                var url = new URL(window.location.href);
+                url.searchParams.set('tab', tabId);
+                history.replaceState(null, '', url);
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var requestedTab = new URLSearchParams(window.location.search).get('tab');
+                if (requestedTab && document.getElementById('tab-' + requestedTab)) {
+                    showTab(requestedTab, document.getElementById('nav-' + requestedTab));
+                    return;
+                }
+                showTab('dashboard', document.getElementById('nav-dashboard'));
+            });
+
+            function toggleDialerWidget() {
+                const container = document.getElementById('webrtcWidgetContainer');
+                container.classList.toggle('hidden');
+                const toggleIcon = document.getElementById('sidebarPhoneToggleIcon');
+                if (toggleIcon) toggleIcon.textContent = container.classList.contains('hidden') ? '+' : '−';
+            }
+
+            // Polls the widget's own `ua`/session state (shared script scope, see webrtc.html)
+            // instead of hooking into it, so this stays accurate without editing that file.
+            (function watchSidebarPhoneStatus() {
+                const dot = document.getElementById('sidebarPhoneDot');
+                if (!dot) return;
+                setInterval(() => {
+                    const connected = typeof ua !== 'undefined' && ua && ua.isConnected();
+                    if (connected) {
+                        dot.className = 'w-2 h-2 rounded-full bg-emerald-400 shrink-0';
+                    } else {
+                        dot.className = 'w-2 h-2 rounded-full bg-gray-500 shrink-0';
+                    }
+                }, 1000);
+            })();
+
+            // Lets the agent drag the widget anywhere on screen by grabbing its own top status
+            // bar (the strip showing "WebRTC", inside webrtc.html — not touching that file, just
+            // reusing its existing header as the drag handle). Position is remembered across
+            // reloads (localStorage) since the widget is now a persistent panel, not a popup.
+            (function() {
+                var container = document.getElementById('webrtcWidgetContainer');
+                if (!container) return;
+                var handle = container.querySelector('.absolute.top-0.left-0.right-0');
+                if (!handle) return;
+                handle.style.cursor = 'move';
+                handle.style.touchAction = 'none';
+                var dragging = false, offsetX = 0, offsetY = 0;
+                var STORAGE_KEY = 'ihelpbd_dialer_position';
+
+                var saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    try {
+                        var pos = JSON.parse(saved);
+                        container.style.left = pos.left + 'px';
+                        container.style.top = pos.top + 'px';
+                        container.style.right = 'auto';
+                        container.style.bottom = 'auto';
+                    } catch (e) {}
+                }
+
+                function clamp(val, min, max) {
+                    return Math.min(Math.max(val, min), max);
+                }
+
+                handle.addEventListener('pointerdown', function(e) {
+                    dragging = true;
+                    var rect = container.getBoundingClientRect();
+                    offsetX = e.clientX - rect.left;
+                    offsetY = e.clientY - rect.top;
+                    container.style.right = 'auto';
+                    container.style.bottom = 'auto';
+                    handle.setPointerCapture(e.pointerId);
+                });
+
+                handle.addEventListener('pointermove', function(e) {
+                    if (!dragging) return;
+                    var left = clamp(e.clientX - offsetX, 0, window.innerWidth - container.offsetWidth);
+                    var top = clamp(e.clientY - offsetY, 0, window.innerHeight - container.offsetHeight);
+                    container.style.left = left + 'px';
+                    container.style.top = top + 'px';
+                });
+
+                handle.addEventListener('pointerup', function(e) {
+                    if (!dragging) return;
+                    dragging = false;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        left: parseInt(container.style.left, 10),
+                        top: parseInt(container.style.top, 10),
+                    }));
+                });
+            })();
+
+            // If an incoming call arrives while the widget is toggled closed, force it open
+            // and try to grab attention via a Notification (works even if this browser tab
+            // isn't focused). Watches #incomingScreen's visibility instead of touching
+            // webrtc.html itself.
+            (function() {
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
+
+                const widgetContainer = document.getElementById('webrtcWidgetContainer');
+                const incomingScreen = document.getElementById('incomingScreen');
+                const incomingNumberEl = document.getElementById('incomingNumber');
+                if (!incomingScreen) return;
+
+                let activeNotification = null;
+
+                const observer = new MutationObserver(function() {
+                    const isShowing = !incomingScreen.classList.contains('hidden');
+
+                    if (isShowing) {
+                        widgetContainer.classList.remove('hidden');
+                        window.focus();
+
+                        if ('Notification' in window && Notification.permission === 'granted' && !activeNotification) {
+                            const caller = incomingNumberEl ? incomingNumberEl.innerText : 'Unknown';
+                            activeNotification = new Notification('Incoming Call', {
+                                body: caller,
+                                tag: 'ihelpbd-incoming-call',
+                                requireInteraction: true,
+                            });
+                            activeNotification.onclick = function() {
+                                window.focus();
+                                widgetContainer.classList.remove('hidden');
+                                activeNotification.close();
+                            };
+                        }
+                    } else if (activeNotification) {
+                        activeNotification.close();
+                        activeNotification = null;
+                    }
+                });
+                observer.observe(incomingScreen, { attributes: true, attributeFilter: ['class'] });
+            })();
+        </script>
+
+        {% block body %}
+        <!-- Main content -->
+        <div class="flex-1 flex flex-col">
+            <main class="flex-1 p-5 overflow-y-auto">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+        {% endblock %}
+    </div>
+</body>
+</html>

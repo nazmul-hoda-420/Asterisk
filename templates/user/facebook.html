@@ -1,0 +1,471 @@
+<style>
+    .fb-avatar {
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 9999px; color: #fff; font-weight: 600; flex-shrink: 0;
+        background: linear-gradient(135deg, #00B2FF, #006AFF);
+    }
+    .fb-bubble { position: relative; box-shadow: 0 1px 0.5px rgba(0,0,0,0.13); }
+    .fb-bubble-out { background: #006AFF; color: #fff; border-radius: 16px; border-bottom-right-radius: 4px; }
+    .fb-bubble-in { background: #f0f0f0; color: #050505; border-radius: 16px; border-bottom-left-radius: 4px; }
+    @keyframes fb-bubble-enter {
+        from { opacity: 0; transform: translateY(8px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .fb-bubble-enter { animation: fb-bubble-enter 0.2s ease-out; }
+    .fb-scrollbar::-webkit-scrollbar { width: 6px; }
+    .fb-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+</style>
+
+<div class="flex items-center justify-between mb-3">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">Facebook</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Conversations assigned to you</p>
+    </div>
+</div>
+
+<div class="border border-gray-200 rounded-md overflow-hidden -mb-5 -mx-5" style="height: calc(100vh - 75px); min-height: 480px;">
+    <div class="flex h-full">
+        <!-- Left: conversation list -->
+        <div class="w-[32%] min-w-[260px] max-w-[360px] flex flex-col bg-white border-r border-gray-200">
+            <div class="bg-[#f0f2f5] px-4 py-2.5 flex items-center gap-2.5 shrink-0">
+                <div class="fb-avatar w-9 h-9 text-sm"><i class="fa-brands fa-facebook-messenger"></i></div>
+                <p class="text-sm font-semibold text-gray-800">My Chats</p>
+            </div>
+
+            <div class="px-3 py-2 shrink-0">
+                <div class="bg-[#f0f2f5] rounded-lg px-3 py-1.5 flex items-center gap-2.5">
+                    <i class="fa-solid fa-magnifying-glass text-gray-500 text-[11px]"></i>
+                    <input type="text" id="fbConvSearch" placeholder="Search" class="bg-transparent text-xs text-gray-700 placeholder-gray-500 focus:outline-none w-full">
+                </div>
+            </div>
+
+            <div id="fbConvList" class="overflow-y-auto flex-1 fb-scrollbar">
+                {% for c in facebook_conversations %}
+                <a href="javascript:void(0)" onclick="selectFacebookConversation('{{ c.psid }}')" data-psid="{{ c.psid }}" data-conv-name="{{ c.contact_name|default:c.psid|lower }} {{ c.psid }}" class="flex items-center gap-3 px-3 py-3 border-b border-gray-50 hover:bg-gray-50 transition {% if facebook_selected.psid == c.psid %}bg-[#f0f2f5]{% endif %}">
+                    <div class="fb-avatar w-11 h-11 text-sm">{{ c.contact_name|default:c.psid|first|upper }}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <p class="conv-name text-[13px] {% if c.unread_count %}font-bold text-gray-900{% else %}font-medium text-gray-900{% endif %} truncate">{{ c.contact_name|default:c.psid }}</p>
+                            <p class="conv-time text-[10px] {% if c.unread_count %}text-[#006AFF] font-semibold{% else %}text-gray-400{% endif %} shrink-0 ml-2">{% if c.last_message_at %}{{ c.last_message_at|date:"g:i A" }}{% endif %}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-0.5">
+                            <p class="conv-preview text-[11px] {% if c.unread_count %}text-gray-800 font-medium{% else %}text-gray-500{% endif %} truncate">{{ c.last_message_preview|default:c.psid }}</p>
+                            <span class="conv-badge shrink-0 ml-2 min-w-[18px] h-[18px] px-1 rounded-full bg-[#006AFF] text-white text-[10px] font-semibold items-center justify-center {% if c.unread_count %}flex{% else %}hidden{% endif %}">{{ c.unread_count }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="px-4 py-10 text-center text-gray-400 text-[11px]">No conversations assigned to you yet</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% include 'user/_facebook_thread.html' %}
+    </div>
+</div>
+
+<script>
+    // Everything here is scoped to `window.FB_CHAT` so selectFacebookConversation (called from
+    // an onclick= attribute, and from the Dashboard tab's own preview cards) can reach it -- an
+    // IIFE-local closure wouldn't be visible outside this <script> tag. (Named FB_CHAT, not FB,
+    // since window.FB is the name Meta's own JS SDK uses.)
+    window.FB_CHAT = window.FB_CHAT || (function() {
+        let currentPsid = "{{ facebook_selected.psid|default:'' }}";
+        let pendingFile = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let recordingCancelled = false;
+        let recordingStream = null;
+        let recordingTimerInterval = null;
+        let recordingStartedAt = 0;
+
+        function statusIcon(status) {
+            const icon = document.createElement('i');
+            if (status === 'pending') icon.className = 'fa-regular fa-clock';
+            else if (status === 'sent') icon.className = 'fa-solid fa-check';
+            else if (status === 'delivered') icon.className = 'fa-solid fa-check-double text-gray-400';
+            else if (status === 'read') { icon.className = 'fa-solid fa-check-double'; icon.style.color = '#006AFF'; }
+            else if (status === 'failed') icon.className = 'fa-solid fa-triangle-exclamation text-red-400';
+            return icon;
+        }
+
+        function buildMediaEl(mediaType, mediaUrl, mediaFilename) {
+            if (!mediaUrl) return null;
+            let el;
+            if (mediaType === 'image') {
+                el = document.createElement('a');
+                el.href = mediaUrl; el.target = '_blank';
+                const img = document.createElement('img');
+                img.src = mediaUrl;
+                img.className = 'rounded-md max-w-[260px] max-h-[300px] mb-1';
+                el.appendChild(img);
+            } else if (mediaType === 'video') {
+                el = document.createElement('video');
+                el.src = mediaUrl; el.controls = true;
+                el.className = 'rounded-md max-w-[260px] max-h-[300px] mb-1';
+            } else if (mediaType === 'audio') {
+                el = document.createElement('audio');
+                el.src = mediaUrl; el.controls = true;
+                el.className = 'mb-1'; el.style.maxWidth = '260px';
+            } else {
+                el = document.createElement('a');
+                el.href = mediaUrl; el.target = '_blank';
+                el.className = 'flex items-center gap-2 bg-black/10 rounded-md px-2.5 py-2 mb-1 hover:bg-black/20 transition';
+                el.innerHTML = '<i class="fa-solid fa-file-lines text-lg"></i>'
+                    + '<span class="text-[12px] truncate max-w-[180px]"></span>'
+                    + '<i class="fa-solid fa-download text-xs ml-auto"></i>';
+                el.querySelector('span').textContent = mediaFilename || 'File';
+            }
+            return el;
+        }
+
+        function previewLabel(body, mediaType, mediaFilename) {
+            if (body) return body;
+            if (mediaType === 'image') return '📷 Photo';
+            if (mediaType === 'video') return '🎥 Video';
+            if (mediaType === 'audio') return '🎵 Audio';
+            if (mediaType === 'file') return '📄 ' + (mediaFilename || 'File');
+            return '';
+        }
+
+        function appendBubble(id, direction, body, timeStr, status, mediaType, mediaUrl, mediaFilename) {
+            const pane = document.getElementById('fbThreadPane');
+            if (!pane) return;
+            if (id && pane.querySelector('[data-msg-id="' + id + '"]')) return;
+            const wrap = document.createElement('div');
+            wrap.className = 'flex ' + (direction === 'out' ? 'justify-end' : 'justify-start');
+            if (id) wrap.dataset.msgId = id;
+            const bubble = document.createElement('div');
+            bubble.className = 'fb-bubble fb-bubble-enter ' + (direction === 'out' ? 'fb-bubble-out' : 'fb-bubble-in') + ' max-w-[65%] px-3.5 py-2';
+            const mediaEl = buildMediaEl(mediaType, mediaUrl, mediaFilename);
+            if (mediaEl) bubble.appendChild(mediaEl);
+            if (body) {
+                const p = document.createElement('p');
+                p.className = 'text-[13.5px] leading-snug whitespace-pre-wrap break-words';
+                p.textContent = body;
+                bubble.appendChild(p);
+            }
+            wrap.appendChild(bubble);
+            pane.appendChild(wrap);
+
+            const metaWrap = document.createElement('div');
+            metaWrap.className = 'flex ' + (direction === 'out' ? 'justify-end' : 'justify-start');
+            const meta = document.createElement('p');
+            meta.className = 'text-[10px] text-gray-400 px-1';
+            meta.append(timeStr + ' ');
+            if (direction === 'out') meta.appendChild(statusIcon(status));
+            metaWrap.appendChild(meta);
+            pane.appendChild(metaWrap);
+            pane.scrollTop = pane.scrollHeight;
+        }
+
+        function updateSidebar(psid, previewText, timeStr, direction, contactName) {
+            const list = document.getElementById('fbConvList');
+            let row = list ? list.querySelector('a[data-psid="' + CSS.escape(psid) + '"]') : null;
+            if (!row) {
+                // Brand new assignment landed while this page was already open -- build the row
+                // from scratch instead of waiting for a reload, since a reload would drop the
+                // embedded WebRTC connection mid-call.
+                if (!list) return;
+                const emptyMsg = list.querySelector('.px-4.py-10');
+                if (emptyMsg) emptyMsg.remove();
+                const displayName = contactName || psid;
+                row = document.createElement('a');
+                row.href = 'javascript:void(0)';
+                row.setAttribute('onclick', "selectFacebookConversation('" + psid.replace(/'/g, "\\'") + "')");
+                row.dataset.psid = psid;
+                row.dataset.convName = (displayName + ' ' + psid).toLowerCase();
+                row.className = 'flex items-center gap-3 px-3 py-3 border-b border-gray-50 hover:bg-gray-50 transition';
+                row.innerHTML = `
+                    <div class="fb-avatar w-11 h-11 text-sm"></div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <p class="conv-name text-[13px] font-medium text-gray-900 truncate"></p>
+                            <p class="conv-time text-[10px] text-gray-400 shrink-0 ml-2"></p>
+                        </div>
+                        <div class="flex items-center justify-between mt-0.5">
+                            <p class="conv-preview text-[11px] text-gray-500 truncate"></p>
+                            <span class="conv-badge shrink-0 ml-2 min-w-[18px] h-[18px] px-1 rounded-full bg-[#006AFF] text-white text-[10px] font-semibold items-center justify-center hidden">0</span>
+                        </div>
+                    </div>
+                `;
+                row.querySelector('.fb-avatar').textContent = displayName.charAt(0).toUpperCase();
+                row.querySelector('.conv-name').textContent = displayName;
+                list.prepend(row);
+            }
+            const previewEl = row.querySelector('.conv-preview');
+            const timeEl = row.querySelector('.conv-time');
+            const nameEl = row.querySelector('.conv-name');
+            const badgeEl = row.querySelector('.conv-badge');
+            // The contact name isn't always resolved yet on a brand-new conversation's very
+            // first message (Facebook's best-effort profile lookup can lag) -- refresh it here
+            // too so a later message self-heals the display instead of leaving the raw psid
+            // shown until the next full page reload.
+            if (nameEl && contactName) nameEl.textContent = contactName;
+            if (previewEl) previewEl.textContent = previewText;
+            if (timeEl) timeEl.textContent = timeStr;
+
+            if (direction === 'in' && psid !== currentPsid) {
+                if (badgeEl) {
+                    badgeEl.textContent = (parseInt(badgeEl.textContent, 10) || 0) + 1;
+                    badgeEl.classList.remove('hidden');
+                    badgeEl.classList.add('flex');
+                }
+                if (nameEl) { nameEl.classList.add('font-bold'); nameEl.classList.remove('font-medium'); }
+                if (previewEl) { previewEl.classList.add('font-medium', 'text-gray-800'); previewEl.classList.remove('text-gray-500'); }
+                if (timeEl) { timeEl.classList.add('text-[#006AFF]', 'font-semibold'); timeEl.classList.remove('text-gray-400'); }
+            }
+
+            if (list.firstElementChild !== row) list.prepend(row);
+        }
+
+        function postAction(params) {
+            const tokenEl = document.querySelector('#tab-facebook [name=csrfmiddlewaretoken]');
+            if (!tokenEl) return;
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: {'X-CSRFToken': tokenEl.value, 'Content-Type': 'application/x-www-form-urlencoded'},
+                body: params,
+            });
+        }
+
+        function markRead(psid) {
+            postAction('action=mark_read&psid=' + encodeURIComponent(psid));
+        }
+
+        // Shared by the paperclip attachment flow and the mic-recording flow below -- both end
+        // up with a File object to hand to the same 'send_media' action, just with isVoice
+        // marking the recorded-note case so the backend transcodes it first (see
+        // _transcode_to_opus_ogg) instead of trusting the browser's raw recording container.
+        function submitMedia(file, caption, isVoice) {
+            const form = document.getElementById('fbMsgForm');
+            if (!form) return;
+            const psid = form.querySelector('[name=psid]').value;
+            const tokenEl = form.querySelector('[name=csrfmiddlewaretoken]');
+            const fd = new FormData();
+            fd.append('action', 'send_media');
+            fd.append('psid', psid);
+            fd.append('body', caption || '');
+            fd.append('file', file);
+            if (isVoice) fd.append('is_voice', '1');
+            fetch(window.location.pathname, {method: 'POST', headers: {'X-CSRFToken': tokenEl.value}, body: fd})
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data.error) return;
+                    appendBubble(data.id, data.direction, data.body, data.time, data.status, data.media_type, data.media_url, data.media_filename);
+                    updateSidebar(data.psid, previewLabel(data.body, data.media_type, data.media_filename), data.time, data.direction, data.contact_name);
+                });
+        }
+
+        function onFileChosen(input) {
+            pendingFile = input.files && input.files[0] ? input.files[0] : null;
+            const preview = document.getElementById('fbAttachPreview');
+            const nameEl = document.getElementById('fbAttachName');
+            if (pendingFile && preview && nameEl) {
+                nameEl.textContent = pendingFile.name;
+                preview.classList.remove('hidden');
+                preview.classList.add('flex');
+            }
+        }
+
+        function clearAttachment() {
+            pendingFile = null;
+            const input = document.getElementById('fbFileInput');
+            const preview = document.getElementById('fbAttachPreview');
+            if (input) input.value = '';
+            if (preview) { preview.classList.add('hidden'); preview.classList.remove('flex'); }
+        }
+
+        function setRecordingUi(active) {
+            const attachBtn = document.getElementById('fbAttachBtn');
+            const inputWrap = document.getElementById('fbInputWrap');
+            const recordBar = document.getElementById('fbRecordBar');
+            const micBtn = document.getElementById('fbMicBtn');
+            if (attachBtn) attachBtn.classList.toggle('hidden', active);
+            if (inputWrap) inputWrap.classList.toggle('hidden', active);
+            if (micBtn) micBtn.classList.toggle('hidden', active);
+            if (recordBar) { recordBar.classList.toggle('hidden', !active); recordBar.classList.toggle('flex', active); }
+        }
+
+        function formatTimer(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
+            return m + ':' + String(s).padStart(2, '0');
+        }
+
+        function pickRecorderMimeType() {
+            const candidates = ['audio/ogg;codecs=opus', 'audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+            for (const type of candidates) {
+                if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) return type;
+            }
+            return '';
+        }
+
+        function isRecording() {
+            return !!(mediaRecorder && mediaRecorder.state === 'recording');
+        }
+
+        function startRecording() {
+            if (!navigator.mediaDevices || !window.MediaRecorder) {
+                alert('Voice recording is not supported in this browser.');
+                return;
+            }
+            navigator.mediaDevices.getUserMedia({audio: true}).then(function(stream) {
+                recordingStream = stream;
+                recordedChunks = [];
+                recordingCancelled = false;
+                const mimeType = pickRecorderMimeType();
+                mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = function(e) {
+                    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+                };
+                mediaRecorder.onstop = function() {
+                    recordingStream.getTracks().forEach(function(t) { t.stop(); });
+                    clearInterval(recordingTimerInterval);
+                    setRecordingUi(false);
+                    if (recordingCancelled || recordedChunks.length === 0) return;
+                    const outType = mediaRecorder.mimeType || mimeType || 'audio/webm';
+                    const blob = new Blob(recordedChunks, {type: outType});
+                    const ext = outType.includes('mp4') ? 'm4a' : (outType.includes('ogg') ? 'ogg' : 'webm');
+                    const file = new File([blob], 'voice-message.' + ext, {type: outType});
+                    submitMedia(file, '', true);
+                };
+                mediaRecorder.start();
+                recordingStartedAt = Date.now();
+                setRecordingUi(true);
+                const timerEl = document.getElementById('fbRecordTimer');
+                if (timerEl) timerEl.textContent = '0:00';
+                recordingTimerInterval = setInterval(function() {
+                    const elapsed = Math.floor((Date.now() - recordingStartedAt) / 1000);
+                    if (timerEl) timerEl.textContent = formatTimer(elapsed);
+                }, 500);
+            }).catch(function() {
+                alert('Microphone permission is required to record a voice message.');
+            });
+        }
+
+        function cancelRecording() {
+            recordingCancelled = true;
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        }
+
+        function stopAndSendRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        }
+
+        // Re-binds everything that depends on which conversation is currently showing in
+        // #fbRightPane -- called once on initial page load and again every time
+        // selectFacebookConversation() swaps that pane's HTML in via AJAX.
+        function initThread() {
+            const pane = document.getElementById('fbThreadPane');
+            if (pane) pane.scrollTop = pane.scrollHeight;
+
+            const form = document.getElementById('fbMsgForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    if (isRecording()) { stopAndSendRecording(); return; }
+                    const bodyInput = document.getElementById('fbMsgBody');
+                    const body = bodyInput.value.trim();
+                    if (!body && !pendingFile) return;
+
+                    if (pendingFile) {
+                        const fileToSend = pendingFile;
+                        bodyInput.value = '';
+                        clearAttachment();
+                        submitMedia(fileToSend, body, false);
+                        return;
+                    }
+
+                    const psid = form.querySelector('[name=psid]').value;
+                    const tokenEl = form.querySelector('[name=csrfmiddlewaretoken]');
+                    bodyInput.value = '';
+                    bodyInput.disabled = true;
+                    fetch(window.location.pathname, {
+                        method: 'POST',
+                        headers: {'X-CSRFToken': tokenEl.value, 'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: 'action=send&psid=' + encodeURIComponent(psid) + '&body=' + encodeURIComponent(body),
+                    })
+                        .then(r => r.json())
+                        .then(function(data) {
+                            if (data.error) return;
+                            appendBubble(data.id, data.direction, data.body, data.time, data.status, data.media_type, data.media_url, data.media_filename);
+                            updateSidebar(data.psid, previewLabel(data.body, data.media_type, data.media_filename), data.time, data.direction, data.contact_name);
+                        })
+                        .finally(function() {
+                            bodyInput.disabled = false;
+                            bodyInput.focus();
+                        });
+                });
+            }
+        }
+
+        // Swaps in the selected conversation's thread via AJAX -- no navigation, so the
+        // embedded WebRTC widget (shared across every tab on this one already-loaded page)
+        // never gets torn down and reconnected just from opening a chat. Also usable from
+        // outside the Facebook tab (see the Dashboard "Messages" cards), which is why it starts
+        // by switching to this tab itself.
+        function select(psid) {
+            pendingFile = null;
+            if (isRecording()) cancelRecording();
+            if (typeof showTab === 'function') showTab('facebook', document.getElementById('nav-facebook'));
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', 'facebook');
+            url.searchParams.set('psid', psid);
+            history.replaceState(null, '', url);
+
+            document.querySelectorAll('#tab-facebook a[data-psid]').forEach(function(row) {
+                row.classList.toggle('bg-[#f0f2f5]', row.dataset.psid === psid);
+                if (row.dataset.psid === psid) {
+                    const badge = row.querySelector('.conv-badge');
+                    if (badge) { badge.classList.add('hidden'); badge.classList.remove('flex'); badge.textContent = '0'; }
+                    const nameEl = row.querySelector('.conv-name');
+                    if (nameEl) { nameEl.classList.remove('font-bold'); nameEl.classList.add('font-medium'); }
+                }
+            });
+
+            fetch("{% url 'user_conversation_thread' %}?channel=facebook&id=" + encodeURIComponent(psid), {
+                headers: {'X-Requested-With': 'XMLHttpRequest'},
+            })
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data.error || !data.html) return;
+                    document.getElementById('fbRightPane').outerHTML = data.html;
+                    currentPsid = psid;
+                    initThread();
+                });
+        }
+        window.selectFacebookConversation = select;
+
+        function connect() {
+            const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const socket = new WebSocket(`${scheme}://${window.location.host}/ws/realtime/`);
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                if (data.kind !== 'facebook_message') return;
+                if (!document.querySelector('#tab-facebook a[data-psid="' + CSS.escape(data.psid) + '"]')) return;
+                updateSidebar(data.psid, previewLabel(data.body, data.media_type, data.media_filename), data.time, data.direction, data.contact_name);
+                if (data.psid === currentPsid) {
+                    appendBubble(data.id, data.direction, data.body, data.time, data.status, data.media_type, data.media_url, data.media_filename);
+                    if (data.direction === 'in') markRead(currentPsid);
+                }
+            };
+            socket.onclose = function() { setTimeout(connect, 3000); };
+        }
+        connect();
+        initThread();
+
+        return {select, onFileChosen, clearAttachment, startRecording, cancelRecording};
+    })();
+
+    (function() {
+        const input = document.getElementById('fbConvSearch');
+        if (!input) return;
+        input.addEventListener('input', function() {
+            const q = input.value.trim().toLowerCase();
+            document.querySelectorAll('[data-conv-name]').forEach(function(row) {
+                row.style.display = row.getAttribute('data-conv-name').includes(q) ? '' : 'none';
+            });
+        });
+    })();
+</script>

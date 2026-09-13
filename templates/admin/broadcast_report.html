@@ -1,0 +1,185 @@
+{% extends "admin/base.html" %}
+{% block title %}Broadcast Report{% endblock %}
+
+{% block content %}
+
+    <!-- Header Section -->
+    <div class="mb-6">
+        <div class="mb-3">
+            <h1 class="text-sm font-semibold text-gray-800">Broadcast Report</h1>
+            <p class="text-[11px] text-gray-500 mt-0.5">Every broadcast campaign's calls, in one place — including deleted campaigns</p>
+        </div>
+
+        <!-- Filter Form -->
+        <form method="get" class="bg-white border border-gray-200 rounded-md p-3 flex flex-wrap gap-3 items-end">
+            <div class="w-[170px]">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">From</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                    </div>
+                    <input type="date" name="date_from" value="{{ filters.date_from }}"
+                           class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+                </div>
+            </div>
+            <div class="w-[170px]">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">To</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                    </div>
+                    <input type="date" name="date_to" value="{{ filters.date_to }}"
+                           class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+                </div>
+            </div>
+            <div class="flex-1 min-w-[220px]">
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Broadcast</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-bullhorn text-gray-400 text-sm"></i>
+                    </div>
+                    <select name="broadcast"
+                            class="appearance-none pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs bg-white pr-8">
+                        <option value="">All Broadcasts</option>
+                        {% for b in broadcasts %}
+                        <option value="{{ b.id }}" {% if filters.broadcast == b.id|stringformat:"s" %}selected{% endif %}>
+                            {{ b.tag }} ({{ b.name }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] pointer-events-none"></i>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit"
+                        class="px-3 py-1.5 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition">
+                    Filter
+                </button>
+                <a href="{% url 'admin_broadcast_report' %}"
+                   class="px-3 py-1.5 rounded border border-gray-300 text-gray-600 text-xs hover:bg-gray-50 transition">
+                    Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Container -->
+    <div class="bg-white shadow rounded-md border border-gray-200 overflow-hidden">
+
+        <div class="overflow-x-auto overflow-y-hidden touch-pan-x">
+            <table class="w-full text-[11px] text-left text-gray-600 table-fixed min-w-[900px]">
+
+                <thead class="bg-slate-100 border-b border-slate-200 sticky top-0 z-10">
+                    <tr>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:10%;">Broadcast ID</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:20%;">Broadcast Name</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:15%;">Phone</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:20%;">Time</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:13%;">Duration</th>
+                        <th class="px-3 py-2 text-[10px] font-bold text-slate-600 uppercase whitespace-nowrap" style="width:15%;">Status</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-gray-100">
+                    {% for call in calls %}
+                        <tr class="hover:bg-blue-50/40 transition-colors">
+                            <td class="px-3 py-1.5 whitespace-nowrap font-semibold text-gray-800">{{ call.broadcast_id }}</td>
+                            <td class="px-3 py-1.5 max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title="{{ call.broadcast_name }}">{{ call.broadcast_name }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap">{{ call.real_number|default:"-" }}</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap">{{ call.start|date:DATETIME_FORMAT|default:"-" }}</td>
+                            <td class="px-3 py-1.5 font-semibold text-blue-600 whitespace-nowrap">{{ call.billsec|default:0 }}s</td>
+                            <td class="px-3 py-1.5 whitespace-nowrap">
+                                {% if call.disposition == "ANSWERED" %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-emerald-100 text-emerald-700 font-semibold whitespace-nowrap">ANSWERED</span>
+                                {% elif call.disposition == "BUSY" %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-rose-100 text-rose-600 font-semibold whitespace-nowrap">BUSY</span>
+                                {% elif call.disposition == "NO ANSWER" %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-amber-100 text-amber-700 font-semibold whitespace-nowrap">NO ANSWER</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 text-[10px] rounded bg-gray-100 text-gray-600 whitespace-nowrap">{{ call.disposition|default:"-" }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-12 text-gray-400 text-xs">
+                                No Broadcast Calls Found
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Table Footer: Count + Pagination -->
+        <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+
+                <p class="text-xs text-gray-500">
+                    Showing
+                    <span class="font-semibold text-gray-700">{{ calls.start_index }}–{{ calls.end_index }}</span>
+                    of
+                    <span class="font-semibold text-blue-600">{{ calls.paginator.count }}</span>
+                    entries
+                </p>
+
+                {% if calls.has_other_pages %}
+                <nav class="flex items-center gap-1 text-xs">
+
+                    {% if calls.has_previous %}
+                    <a href="?page=1{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angles-left"></i>
+                    </a>
+                    <a href="?page={{ calls.previous_page_number }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                    {% else %}
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angles-left"></i></span>
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angle-left"></i></span>
+                    {% endif %}
+
+                    {% for num in calls.paginator.page_range %}
+                        {% if calls.number == num %}
+                            <span class="px-2.5 py-1 rounded border border-blue-400 bg-blue-500 text-white font-semibold">{{ num }}</span>
+                        {% elif num >= calls.number|add:"-3" and num <= calls.number|add:"3" %}
+                            <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                               class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                        {% elif num == 1 or num == calls.paginator.num_pages %}
+                            {% if num == 1 and calls.number > 5 %}
+                                <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                                <span class="px-1 text-gray-400">…</span>
+                            {% elif num == calls.paginator.num_pages and calls.number < calls.paginator.num_pages|add:"-4" %}
+                                <span class="px-1 text-gray-400">…</span>
+                                <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                            {% else %}
+                                <a href="?page={{ num }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                                   class="px-2.5 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">{{ num }}</a>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if calls.has_next %}
+                    <a href="?page={{ calls.next_page_number }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                    <a href="?page={{ calls.paginator.num_pages }}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.broadcast %}&broadcast={{ filters.broadcast }}{% endif %}"
+                       class="px-2 py-1 rounded border border-gray-200 text-gray-600 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-angles-right"></i>
+                    </a>
+                    {% else %}
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angle-right"></i></span>
+                    <span class="px-2 py-1 rounded border border-gray-100 text-gray-300 cursor-not-allowed"><i class="fas fa-angles-right"></i></span>
+                    {% endif %}
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}

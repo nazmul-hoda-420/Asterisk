@@ -1,0 +1,464 @@
+<div class="flex items-center justify-between mb-5">
+    <div>
+        <h1 class="text-sm font-semibold text-gray-800">Welcome back, {{ request.user.full_name|default:request.user.username }}</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Here's how your day is going</p>
+    </div>
+    <span class="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-xs font-medium">
+        <i class="fa-solid fa-circle text-[7px]"></i> Available
+    </span>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Total Calls Today</p>
+            <i class="fa-solid fa-phone text-blue-800"></i>
+        </div>
+        <p id="statTotalCalls" class="text-lg font-bold text-black mt-1">{{ total_calls_today }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">All calls today</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Total Inbound</p>
+            <i class="fa-solid fa-arrow-down text-green-800"></i>
+        </div>
+        <p id="statTotalInbound" class="text-lg font-bold text-black mt-1">{{ total_inbound }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Received today</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Total Outbound</p>
+            <i class="fa-solid fa-arrow-up text-indigo-800"></i>
+        </div>
+        <p id="statTotalOutbound" class="text-lg font-bold text-black mt-1">{{ total_outbound }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">Dialed today</p>
+    </div>
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center justify-between">
+            <p class="text-[11px] text-black">Total Talk Time</p>
+            <i class="fa-solid fa-clock text-amber-800"></i>
+        </div>
+        <p id="statTotalTalkTime" class="text-lg font-bold text-black mt-1">{{ total_talk_time }}</p>
+        <p class="text-[10px] text-gray-400 mt-0.5">HH:MM:SS format</p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-[77.5%_22.5%] gap-4">
+    <div class="flex flex-col gap-4" style="min-height: 500px;">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="height: 265px;">
+        <!-- Live Queue -->
+        <div class="bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-4 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h3 class="text-[11px] font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-list-ul text-indigo-500"></i> Live Queue
+                </h3>
+                <span id="liveQueueCount" class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{{ live_queue_callers|length }} Waiting</span>
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left table-fixed">
+                    <thead class="bg-slate-100 border-b border-slate-200 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2 text-[9.5px] font-bold text-black uppercase">Caller</th>
+                            <th class="px-4 py-2 text-[9.5px] font-bold text-black uppercase">Group</th>
+                            <th class="px-4 py-2 text-[9.5px] font-bold text-black uppercase">Wait</th>
+                        </tr>
+                    </thead>
+                    <tbody id="liveQueueList" class="divide-y divide-slate-50 text-[11px]">
+                        {% for caller in live_queue_callers %}
+                        <tr data-uniqueid="{{ caller.uniqueid }}" class="hover:bg-indigo-50/30 transition-colors duration-150">
+                            <td class="px-4 py-1 font-bold text-slate-700">{{ caller.number|default:caller.caller }}</td>
+                            <td class="px-4 py-1 text-slate-700 font-semibold">{{ caller.queue }}</td>
+                            <td class="px-4 py-1 text-slate-700 font-semibold wait-cell" data-joined="{{ caller.joined_at }}">0s</td>
+                        </tr>
+                        {% empty %}
+                        <tr id="liveQueueEmpty">
+                            <td colspan="3" class="px-4 py-6 text-center text-slate-400 font-medium">No callers waiting</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Drop Call -->
+        <div class="bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-4 py-2 border-b border-slate-100 bg-red-50/30 flex justify-between items-center shrink-0">
+                <h3 class="text-[11px] font-bold text-red-700 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-phone-slash"></i> Dropped / Missed
+                </h3>
+                <span id="dropCallTotal" class="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Total: {{ dropped_calls|length }}</span>
+            </div>
+            <div class="overflow-y-auto flex-1">
+                <table class="w-full text-left table-fixed">
+                    <thead class="bg-slate-100 border-b border-slate-200 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2 text-[9.5px] font-bold text-black uppercase">Number</th>
+                            <th class="px-4 py-2 text-[9.5px] font-bold text-black uppercase">Time</th>
+                            <th class="px-4 py-2 text-[9.5px] font-bold text-black uppercase">Wait</th>
+                            <th class="px-4 py-2 text-[9.5px] font-bold text-black uppercase text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dropCallTbody" class="divide-y divide-slate-50 text-[11px]">
+                        {% for call in dropped_calls %}
+                        <tr data-callid="{{ call.callid }}" class="hover:bg-red-50/30 transition-colors duration-150">
+                            <td class="px-4 py-1 font-bold text-slate-700">{{ call.number }}</td>
+                            <td class="px-4 py-1 text-slate-700 font-semibold">{{ call.time }}</td>
+                            <td class="px-4 py-1 text-slate-700 font-semibold">{{ call.wait_seconds }}s</td>
+                            <td class="px-4 py-1 text-right">
+                                <button onclick="callBack('{{ call.number }}', '{{ call.callid }}', this)" class="px-2.5 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded hover:bg-indigo-700 transition-colors">
+                                    <i class="fa-solid fa-phone text-[9px] mr-1"></i>Callback
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr id="dropCallEmpty">
+                            <td colspan="4" class="px-4 py-8 text-center text-slate-400">
+                                <i class="fas fa-check-circle text-green-400 mr-1"></i> No missed calls today
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages: WhatsApp + Facebook Messenger, two separate cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+        <div class="bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-4 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h3 class="text-[11px] font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-brands fa-whatsapp text-[#25D366]"></i> WhatsApp
+                </h3>
+            </div>
+            <div id="waMessagesList" class="overflow-y-auto flex-1 divide-y divide-slate-50">
+                {% for c in whatsapp_conversations %}
+                <a href="javascript:void(0)" onclick="window.selectWhatsappConversation && window.selectWhatsappConversation('{{ c.number }}')" data-number="{{ c.number }}" class="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 transition-colors">
+                    <span class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] bg-[#25D366]">
+                        <i class="fa-brands fa-whatsapp"></i>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <p class="msg-name text-[11px] {% if c.unread_count %}font-bold text-slate-900{% else %}font-semibold text-slate-700{% endif %} truncate">{{ c.contact_name|default:c.number }}</p>
+                            <p class="msg-time text-[9.5px] text-slate-400 shrink-0 ml-2">{% if c.last_message_at %}{{ c.last_message_at|date:"g:i A" }}{% endif %}</p>
+                        </div>
+                        <p class="msg-preview text-[10px] {% if c.unread_count %}text-slate-700 font-medium{% else %}text-slate-400{% endif %} truncate">{{ c.last_message_preview }}</p>
+                    </div>
+                    {% if c.unread_count %}
+                    <span class="msg-badge shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-indigo-600 text-white text-[9px] font-semibold flex items-center justify-center">{{ c.unread_count }}</span>
+                    {% endif %}
+                </a>
+                {% empty %}
+                <p class="text-center text-slate-400 text-[10px] py-6">No WhatsApp chats assigned to you</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-md border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+            <div class="px-4 py-2 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h3 class="text-[11px] font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fa-brands fa-facebook-messenger text-[#006AFF]"></i> Messenger
+                </h3>
+            </div>
+            <div id="fbMessagesList" class="overflow-y-auto flex-1 divide-y divide-slate-50">
+                {% for c in facebook_conversations %}
+                <a href="javascript:void(0)" onclick="window.selectFacebookConversation && window.selectFacebookConversation('{{ c.psid }}')" data-psid="{{ c.psid }}" class="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 transition-colors">
+                    <span class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] bg-[#006AFF]">
+                        <i class="fa-brands fa-facebook-messenger"></i>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <p class="msg-name text-[11px] {% if c.unread_count %}font-bold text-slate-900{% else %}font-semibold text-slate-700{% endif %} truncate">{{ c.contact_name|default:c.psid }}</p>
+                            <p class="msg-time text-[9.5px] text-slate-400 shrink-0 ml-2">{% if c.last_message_at %}{{ c.last_message_at|date:"g:i A" }}{% endif %}</p>
+                        </div>
+                        <p class="msg-preview text-[10px] {% if c.unread_count %}text-slate-700 font-medium{% else %}text-slate-400{% endif %} truncate">{{ c.last_message_preview }}</p>
+                    </div>
+                    {% if c.unread_count %}
+                    <span class="msg-badge shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-indigo-600 text-white text-[9px] font-semibold flex items-center justify-center">{{ c.unread_count }}</span>
+                    {% endif %}
+                </a>
+                {% empty %}
+                <p class="text-center text-slate-400 text-[10px] py-6">No Messenger chats assigned to you</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Agent status -->
+    <div class="bg-white rounded-md shadow-sm border border-gray-100 flex flex-col overflow-hidden h-full" style="min-height: 500px;">
+        <div class="px-2 py-1.5 bg-slate-200 border-b border-slate-100 shrink-0">
+            <p class="text-[9px] font-bold text-slate-700 uppercase tracking-widest flex items-center gap-1.5">
+                <i class="fas fa-headset text-[9px] text-emerald-500"></i>
+                <span class="bg-gradient-to-r from-slate-700 to-slate-500 bg-clip-text text-transparent">AGENT STATUS</span>
+                <span id="teamStatusCount" class="ml-auto text-[8px] text-emerald-600 font-normal normal-case tracking-normal">
+                    <i class="fas fa-user-check text-[8px]"></i> {{ team_status|length }} Active
+                </span>
+            </p>
+        </div>
+
+        <div id="teamStatusList" class="overflow-y-auto flex-1 p-1 space-y-0 divide-y divide-slate-50 [&::-webkit-scrollbar]:w-[7px] [&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb:hover]:bg-slate-400">
+            {% for agent in team_status %}
+            <div class="bg-white py-1 px-2 flex items-center justify-between hover:shadow-sm transition-all" data-ext="{{ agent.id }}">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center shrink-0 border border-indigo-200">{{ agent.assigned_user.full_name|default:agent.id|slice:":2"|upper }}</div>
+                    <p class="text-[10px] font-bold text-slate-800 truncate">{{ agent.assigned_user.full_name|default:agent.id }} <span class="text-slate-400 font-medium">({{ agent.id }})</span></p>
+                </div>
+                <div class="team-status-badge flex items-center gap-1.5 shrink-0">
+                    {% if agent.status == 'Available' %}
+                    <i class="fas fa-check-circle text-[10px] text-green-500"></i><span class="text-[9px] text-green-600 font-semibold">Available</span>
+                    {% elif agent.status == 'On Call' %}
+                    <i class="fas fa-phone-alt text-[9px] text-red-500 animate-pulse"></i><span class="text-[9px] text-red-600 font-semibold">On Call</span>
+                    {% elif agent.status == 'Ringing' %}
+                    <i class="fas fa-phone-volume text-[9px] text-amber-500 animate-pulse"></i><span class="text-[9px] text-amber-600 font-semibold">Ringing</span>
+                    {% elif agent.status == 'Paused' %}
+                    <i class="fas fa-mug-hot text-[9px] text-amber-500"></i><span class="text-[9px] text-amber-600 font-semibold">Pause</span>
+                    {% else %}
+                    <i class="fas fa-circle text-[8px] text-slate-400"></i><span class="text-[9px] text-slate-500 font-medium">Unavailable</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <p id="teamStatusEmpty" class="text-center text-slate-400 text-[10px] py-6">No agents online</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const MY_EXTENSIONS = [{% for ext in my_extensions %}"{{ ext }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+        const MY_USER_ID = {{ request.user.id }};
+
+        function handleMyStats(data) {
+            if (!MY_EXTENSIONS.includes(data.ext)) return;
+            document.getElementById('statTotalCalls').textContent = data.total_calls_today;
+            document.getElementById('statTotalInbound').textContent = data.total_inbound;
+            document.getElementById('statTotalOutbound').textContent = data.total_outbound;
+            document.getElementById('statTotalTalkTime').textContent = data.total_talk_time;
+        }
+
+        const TEAM_STATUS_BADGE = {
+            'Available': '<i class="fas fa-check-circle text-[10px] text-green-500"></i><span class="text-[9px] text-green-600 font-semibold">Available</span>',
+            'On Call': '<i class="fas fa-phone-alt text-[9px] text-red-500 animate-pulse"></i><span class="text-[9px] text-red-600 font-semibold">On Call</span>',
+            'Ringing': '<i class="fas fa-phone-volume text-[9px] text-amber-500 animate-pulse"></i><span class="text-[9px] text-amber-600 font-semibold">Ringing</span>',
+            'Paused': '<i class="fas fa-mug-hot text-[9px] text-amber-500"></i><span class="text-[9px] text-amber-600 font-semibold">Pause</span>',
+        };
+        const TEAM_STATUS_DEFAULT = '<i class="fas fa-circle text-[8px] text-slate-400"></i><span class="text-[9px] text-slate-500 font-medium">Unavailable</span>';
+
+        function teamStatusCountUpdate() {
+            const countEl = document.getElementById('teamStatusCount');
+            const n = document.querySelectorAll('#teamStatusList > div[data-ext]').length;
+            if (countEl) countEl.innerHTML = `<i class="fas fa-user-check text-[8px]"></i> ${n} Active`;
+        }
+
+        function createTeamStatusRow(ext, name) {
+            const div = document.createElement('div');
+            div.className = 'bg-white py-1 px-2 flex items-center justify-between hover:shadow-sm transition-all';
+            div.dataset.ext = ext;
+            const initials = (name || ext).slice(0, 2).toUpperCase();
+            div.innerHTML = `
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 font-bold text-[10px] flex items-center justify-center shrink-0 border border-indigo-200">${initials}</div>
+                    <p class="text-[10px] font-bold text-slate-800 truncate">${name} <span class="text-slate-400 font-medium">(${ext})</span></p>
+                </div>
+                <div class="team-status-badge flex items-center gap-1.5 shrink-0">${TEAM_STATUS_DEFAULT}</div>`;
+            return div;
+        }
+
+        function handleTeamLogin(data) {
+            const list = document.getElementById('teamStatusList');
+            if (list.querySelector(`div[data-ext="${data.ext}"]`)) return;
+            const empty = document.getElementById('teamStatusEmpty');
+            if (empty) empty.remove();
+            list.appendChild(createTeamStatusRow(data.ext, data.name));
+            teamStatusCountUpdate();
+        }
+
+        function handleTeamLogout(data) {
+            const list = document.getElementById('teamStatusList');
+            const row = list.querySelector(`div[data-ext="${data.ext}"]`);
+            if (row) row.remove();
+            if (!list.querySelector('div[data-ext]')) {
+                list.innerHTML = '<p id="teamStatusEmpty" class="text-center text-slate-400 text-[10px] py-6">No agents online</p>';
+            }
+            teamStatusCountUpdate();
+        }
+
+        function handleTeamStatus(data) {
+            const row = document.querySelector(`#teamStatusList > div[data-ext="${data.ext}"]`);
+            if (!row) return;
+            row.querySelector('.team-status-badge').innerHTML = TEAM_STATUS_BADGE[data.status] || TEAM_STATUS_DEFAULT;
+        }
+
+        function handleQueueUpdate(data) {
+            const list = document.getElementById('liveQueueList');
+            const countEl = document.getElementById('liveQueueCount');
+            const callers = data.callers || [];
+            countEl.textContent = `${callers.length} Waiting`;
+            if (!callers.length) {
+                list.innerHTML = '<tr id="liveQueueEmpty"><td colspan="3" class="px-4 py-6 text-center text-slate-400 font-medium">No callers waiting</td></tr>';
+                return;
+            }
+            list.innerHTML = callers.map(c => `
+                <tr data-uniqueid="${c.uniqueid}" class="hover:bg-indigo-50/30 transition-colors duration-150">
+                    <td class="px-4 py-1 font-bold text-slate-700">${c.number || c.caller}</td>
+                    <td class="px-4 py-1 text-slate-700 font-semibold">${c.queue}</td>
+                    <td class="px-4 py-1 text-slate-700 font-semibold wait-cell" data-joined="${c.joined_at}">0s</td>
+                </tr>`).join('');
+        }
+
+        function getCsrfToken() {
+            const match = document.cookie.match(/csrftoken=([^;]+)/);
+            return match ? match[1] : '';
+        }
+
+        function removeDropCallRow(callid) {
+            const row = document.querySelector(`#dropCallTbody tr[data-callid="${callid}"]`);
+            if (row) row.remove();
+            const tbody = document.getElementById('dropCallTbody');
+            const remaining = tbody ? tbody.querySelectorAll('tr[data-callid]').length : 0;
+            if (tbody && !remaining) {
+                tbody.innerHTML = '<tr id="dropCallEmpty"><td colspan="4" class="px-4 py-8 text-center text-slate-400"><i class="fas fa-check-circle text-green-400 mr-1"></i> No missed calls today</td></tr>';
+            }
+            const totalEl = document.getElementById('dropCallTotal');
+            if (totalEl) totalEl.textContent = `Total: ${remaining}`;
+        }
+
+        function callBack(number, callid, btn) {
+            if (typeof ua === 'undefined' || !ua || !ua.isConnected()) {
+                alert('Your WebRTC phone is not connected yet -- please wait a moment and try again.');
+                return;
+            }
+            document.getElementById('webrtcWidgetContainer').classList.remove('hidden');
+            document.getElementById('dialedNumber').value = number;
+            makeCall();
+
+            if (btn) btn.disabled = true;
+            fetch('{% url "drop_call" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: `callid=${encodeURIComponent(callid)}`,
+            }).catch(() => {});
+        }
+        window.callBack = callBack;
+
+        setInterval(() => {
+            const now = Date.now() / 1000;
+            document.querySelectorAll('.wait-cell').forEach(cell => {
+                const joined = parseFloat(cell.dataset.joined);
+                if (!joined) return;
+                const secs = Math.max(0, Math.round(now - joined));
+                cell.textContent = `${secs}s`;
+            });
+        }, 1000);
+
+        function mediaPreviewLabel(data) {
+            if (data.body) return data.body;
+            if (data.media_type === 'image') return '📷 Photo';
+            if (data.media_type === 'video') return '🎥 Video';
+            if (data.media_type === 'audio') return '🎵 Audio';
+            if (data.media_type === 'document' || data.media_type === 'file') return '📄 ' + (data.media_filename || 'File');
+            return '';
+        }
+
+        // Updates (or, for a conversation this card has never shown before, builds from scratch
+        // and inserts) one row of the Dashboard's WhatsApp/Messenger preview cards -- these cards
+        // are rendered once at page load with no client-side re-fetch, so without this a brand
+        // new conversation, or a new message on an existing one, only ever showed up after a
+        // full page reload.
+        function updateMessageCard(opts, data) {
+            const list = document.getElementById(opts.listId);
+            if (!list) return;
+            const idVal = data[opts.idField];
+            if (!idVal) return;
+            const previewText = mediaPreviewLabel(data);
+            let row = list.querySelector('a[data-' + opts.idAttr + '="' + CSS.escape(idVal) + '"]');
+
+            if (!row) {
+                const emptyMsg = list.querySelector('p.text-center');
+                if (emptyMsg) emptyMsg.remove();
+                row = document.createElement('a');
+                row.href = 'javascript:void(0)';
+                row.dataset[opts.idAttr] = idVal;
+                row.className = 'flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 transition-colors';
+                row.addEventListener('click', function () {
+                    if (typeof window[opts.selectFn] === 'function') window[opts.selectFn](idVal);
+                });
+                row.innerHTML = `
+                    <span class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] ${opts.badgeBg}">
+                        <i class="${opts.iconClass}"></i>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                            <p class="msg-name text-[11px] font-bold text-slate-900 truncate"></p>
+                            <p class="msg-time text-[9.5px] text-slate-400 shrink-0 ml-2"></p>
+                        </div>
+                        <p class="msg-preview text-[10px] text-slate-700 font-medium truncate"></p>
+                    </div>
+                    <span class="msg-badge shrink-0 min-w-[16px] h-4 px-1 rounded-full bg-indigo-600 text-white text-[9px] font-semibold flex items-center justify-center">1</span>
+                `;
+                row.querySelector('.msg-name').textContent = data.contact_name || idVal;
+                list.prepend(row);
+            } else if (list.firstElementChild !== row) {
+                list.prepend(row);
+            }
+
+            const nameEl = row.querySelector('.msg-name');
+            const timeEl = row.querySelector('.msg-time');
+            const previewEl = row.querySelector('.msg-preview');
+            const badgeEl = row.querySelector('.msg-badge');
+            // The contact name isn't always resolved yet on a brand-new conversation's very
+            // first message (e.g. Facebook's best-effort profile lookup can lag) -- refresh it
+            // here too so a later message on the same conversation self-heals the display
+            // instead of leaving the raw number/psid shown until the next full page reload.
+            if (nameEl && data.contact_name) nameEl.textContent = data.contact_name;
+            if (timeEl) timeEl.textContent = data.time;
+            if (previewEl) previewEl.textContent = previewText;
+            if (data.direction === 'in') {
+                if (nameEl) { nameEl.classList.add('font-bold', 'text-slate-900'); nameEl.classList.remove('font-semibold', 'text-slate-700'); }
+                if (previewEl) { previewEl.classList.add('text-slate-700', 'font-medium'); previewEl.classList.remove('text-slate-400'); }
+            }
+            if (data.direction === 'in' && badgeEl) {
+                badgeEl.textContent = (parseInt(badgeEl.textContent, 10) || 0) + 1;
+                badgeEl.classList.remove('hidden');
+                badgeEl.classList.add('flex');
+            }
+        }
+
+        function connectTeamStatusSocket() {
+            const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+            const socket = new WebSocket(`${scheme}://${window.location.host}/ws/realtime/`);
+            socket.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+                // Someone logged into this same account from another browser (see
+                // core.views.login_view) -- leave immediately instead of only finding out on
+                // the next reload, since this session was already deleted server-side.
+                if (data.kind === 'session_kicked') {
+                    if (data.user_id === MY_USER_ID) { window.location.href = '/'; }
+                    return;
+                }
+                if (data.kind === 'agent_login') { handleTeamLogin(data); return; }
+                if (data.kind === 'agent_logout') { handleTeamLogout(data); return; }
+                if (data.kind === 'queue_update') { handleQueueUpdate(data); return; }
+                if (data.kind === 'user_stats') { handleMyStats(data); return; }
+                if (data.kind === 'drop_call_resolved') { removeDropCallRow(data.callid); return; }
+                if (data.kind === 'whatsapp_message') {
+                    updateMessageCard({listId: 'waMessagesList', idField: 'number', idAttr: 'number', selectFn: 'selectWhatsappConversation', badgeBg: 'bg-[#25D366]', iconClass: 'fa-brands fa-whatsapp'}, data);
+                    return;
+                }
+                if (data.kind === 'facebook_message') {
+                    updateMessageCard({listId: 'fbMessagesList', idField: 'psid', idAttr: 'psid', selectFn: 'selectFacebookConversation', badgeBg: 'bg-[#006AFF]', iconClass: 'fa-brands fa-facebook-messenger'}, data);
+                    return;
+                }
+                handleTeamStatus(data);
+            };
+            socket.onclose = function () { setTimeout(connectTeamStatusSocket, 3000); };
+        }
+        connectTeamStatusSocket();
+    })();
+</script>

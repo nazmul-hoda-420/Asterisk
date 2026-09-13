@@ -1,0 +1,125 @@
+{% extends 'admin/base.html' %}
+{% block title %}Performance{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <div class="mb-3">
+        <h1 class="text-sm font-semibold text-gray-800">Performance</h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Per-agent call handling, ranked by calls handled</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+        <div class="bg-white border border-gray-200 rounded-md p-3">
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase text-black">Agents Active</p>
+                <i class="fa-solid fa-users text-gray-400"></i>
+            </div>
+            <p class="text-lg font-bold text-gray-900">{{ agent_count }}</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-md p-3">
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase text-black">Calls Answered</p>
+                <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            </div>
+            <p class="text-lg font-bold text-emerald-600">{{ total_calls }}</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-md p-3">
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase text-black">Calls Missed</p>
+                <i class="fa-solid fa-circle-xmark text-rose-400"></i>
+            </div>
+            <p class="text-lg font-bold text-rose-600">{{ total_missed }}</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-md p-3">
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase text-black">Total Inbound</p>
+                <i class="fa-solid fa-arrow-down text-blue-400"></i>
+            </div>
+            <p class="text-lg font-bold text-blue-600">{{ total_inbound }}</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-md p-3">
+            <div class="flex items-center justify-between">
+                <p class="text-[10px] uppercase text-black">Total Outbound</p>
+                <i class="fa-solid fa-arrow-up text-indigo-400"></i>
+            </div>
+            <p class="text-lg font-bold text-indigo-600">{{ total_outbound }}</p>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <form method="get" class="bg-white border border-gray-200 rounded-md p-3 flex flex-wrap gap-3 items-end">
+        <div class="w-[170px]">
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">From</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                </div>
+                <input type="date" name="date_from" value="{{ date_from }}"
+                       class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+            </div>
+        </div>
+        <div class="w-[170px]">
+            <label class="block text-[11px] font-semibold text-slate-600 mb-1">To</label>
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fas fa-calendar-days text-gray-400 text-sm"></i>
+                </div>
+                <input type="date" name="date_to" value="{{ date_to }}"
+                       class="pl-9 block w-full px-3 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 focus:bg-gray-100 text-xs">
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="px-3 py-1.5 rounded bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition">
+                Filter
+            </button>
+            <a href="{% url 'admin_agent_performance' %}" class="px-3 py-1.5 rounded border border-gray-300 text-gray-600 text-xs hover:bg-gray-50 transition">
+                Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Agent table -->
+<div class="bg-white rounded-md shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full text-xs">
+        <thead>
+            <tr class="bg-gray-50 text-gray-500 text-left">
+                <th class="font-medium px-4 py-2">#</th>
+                <th class="font-medium px-4 py-2">User</th>
+                <th class="font-medium px-4 py-2">Inbound</th>
+                <th class="font-medium px-4 py-2">Outbound</th>
+                <th class="font-medium px-4 py-2">Missed</th>
+                <th class="font-medium px-4 py-2">Answer Rate</th>
+                <th class="font-medium px-4 py-2">Avg. Talk Time</th>
+                <th class="font-medium px-4 py-2">Total Talk Time</th>
+            </tr>
+        </thead>
+        <tbody class="text-gray-700 divide-y divide-gray-50">
+            {% for agent in agent_rows %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-4 py-2.5 text-gray-400">{{ forloop.counter }}</td>
+                <td class="px-4 py-2.5 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-[10px] font-semibold flex items-center justify-center shrink-0">{{ agent.name|slice:":2"|upper }}</span>
+                    <span class="font-medium text-gray-800">{{ agent.name }}</span>
+                    {% if agent.ext %}<span class="text-black text-[10px]">({{ agent.ext }})</span>{% endif %}
+                </td>
+                <td class="px-4 py-2.5">{{ agent.inbound }}</td>
+                <td class="px-4 py-2.5">{{ agent.outbound }}</td>
+                <td class="px-4 py-2.5 {% if agent.missed %}text-red-500{% endif %}">{{ agent.missed }}</td>
+                <td class="px-4 py-2.5">
+                    <span class="{% if agent.answer_rate >= 80 %}text-green-600{% elif agent.answer_rate >= 50 %}text-yellow-600{% else %}text-red-500{% endif %} font-medium">{{ agent.answer_rate }}%</span>
+                </td>
+                <td class="px-4 py-2.5">{{ agent.avg_talk_display }}</td>
+                <td class="px-4 py-2.5">{{ agent.talk_total_display }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="px-4 py-8 text-center text-gray-400 text-[11px]">No agent activity in this period yet</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

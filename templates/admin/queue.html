@@ -1,0 +1,188 @@
+{% extends 'admin/settings_base.html' %}
+{% block title %}Groups{% endblock %}
+
+{% block settings_content %}
+<section id="settings-queue" class="settings-tab">
+
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-800">Call Groups</h2>
+            <p class="text-[11px] text-gray-500 mt-0.5">Configure how waiting calls are distributed to agents</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <!-- Compact inline stats -->
+            <div class="flex items-center gap-3 text-[11px] bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200">
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fas fa-headset text-slate-400 text-[10px]"></i>
+                    <span class="font-bold text-slate-800">{{ total_queues }}</span> Total
+                </span>
+                <span class="w-px h-3 bg-slate-200"></span>
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-circle text-green-500 text-[6px]"></i>
+                    <span class="font-bold text-slate-800">{{ active_queues }}</span> Active
+                </span>
+                <span class="w-px h-3 bg-slate-200"></span>
+                <span class="flex items-center gap-1.5 text-slate-600">
+                    <i class="fa-solid fa-circle text-slate-300 text-[6px]"></i>
+                    <span class="font-bold text-slate-800">{{ inactive_queues }}</span> Inactive
+                </span>
+            </div>
+
+            <button id="toggleQueueFormBtn"
+                    class="w-[110px] justify-center px-2 py-1.5 {% if form.errors %}bg-red-600 hover:bg-red-700{% else %}bg-indigo-600 hover:bg-indigo-700{% endif %} text-white text-[11px] font-bold rounded-sm flex items-center gap-1.5">
+                <i id="toggleQueueIcon" class="fas {% if form.errors %}fa-times{% else %}fa-plus{% endif %} text-[10px]"></i>
+                <span id="toggleQueueText">{% if form.errors %}Cancel{% else %}New Group{% endif %}</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Toggleable quick-create form -->
+    <div id="queueFormContainer"
+         data-has-errors="{% if form.errors %}true{% else %}false{% endif %}"
+         class="grid {% if form.errors %}grid-rows-[1fr] opacity-100{% else %}grid-rows-[0fr] opacity-0{% endif %} transition-all duration-300 ease-in-out overflow-hidden">
+        <div class="min-h-0 overflow-hidden">
+            <form method="post" class="bg-white rounded-md border border-slate-200 shadow-sm p-4 sm:p-5 mb-4">
+                {% csrf_token %}
+                <h3 class="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                    <i class="fas fa-headset text-[10px]"></i> New Group
+                </h3>
+                <p class="text-[10px] text-slate-400 mb-3">Just the basics for now — ring strategy, timeouts, announcements and members are configured on the group's own page after it's created.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Group Name</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                <i class="fas fa-signature text-gray-400 text-xs"></i>
+                            </div>
+                            {{ form.name }}
+                        </div>
+                        {% if form.name.errors %}
+                        <p class="text-red-500 text-[10px] mt-1">{{ form.name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-[11px] font-semibold text-slate-600 mb-1">Description</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                <i class="fas fa-align-left text-gray-400 text-xs"></i>
+                            </div>
+                            {{ form.description }}
+                        </div>
+                    </div>
+                    <div class="flex items-end">
+                        <label class="flex items-center gap-2 text-[11px] font-semibold text-slate-600 pb-2">
+                            {{ form.is_active }}
+                            Active
+                        </label>
+                    </div>
+                </div>
+                <div class="flex justify-end mt-4">
+                    <button type="submit" class="px-5 py-1.5 bg-indigo-600 text-white text-[11px] font-bold rounded-sm hover:bg-indigo-700">Save Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Queue cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for row in queue_rows %}
+        <div class="queue-card bg-white rounded-md border border-slate-200 shadow-sm p-4 hover:border-indigo-300 hover:shadow-md transition cursor-pointer" data-href="{% url 'admin_settings_queue_edit' row.queue.name %}">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                        <i class="fas fa-headset text-indigo-600 text-xs"></i>
+                    </span>
+                    <p class="text-[13px] font-bold text-slate-800">{{ row.queue.name }}</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <form method="post" action="{% url 'admin_settings_queue_toggle' row.queue.name %}" class="inline queue-card-action">
+                        {% csrf_token %}
+                        <button type="submit" class="{% if row.queue.is_active %}text-green-600 hover:text-slate-500{% else %}text-slate-400 hover:text-green-600{% endif %}" title="{% if row.queue.is_active %}Deactivate{% else %}Activate{% endif %}">
+                            <i class="fas fa-toggle-{% if row.queue.is_active %}on{% else %}off{% endif %} text-sm"></i>
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'admin_settings_queue_delete' row.queue.name %}" onsubmit="return confirm('Delete group {{ row.queue.name }}? All members will be removed too.');" class="inline queue-card-action">
+                        {% csrf_token %}
+                        <button type="submit" class="text-red-500 hover:text-red-700" title="Delete">
+                            <i class="fas fa-trash text-[11px]"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-500 mb-3">{{ row.queue.description|default:"No description" }}</p>
+
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <div class="bg-gray-50 rounded-md p-2 text-center">
+                    <p class="text-sm font-bold text-gray-800">{{ row.member_count }}</p>
+                    <p class="text-[9px] text-gray-500 uppercase tracking-wide">Members</p>
+                </div>
+                <div class="bg-gray-50 rounded-md p-2 text-center">
+                    <p class="text-sm font-bold text-green-600">{{ row.live.members_available }}</p>
+                    <p class="text-[9px] text-gray-500 uppercase tracking-wide">Available</p>
+                </div>
+                <div class="bg-gray-50 rounded-md p-2 text-center">
+                    <p class="text-sm font-bold {% if row.live.calls_waiting > 0 %}text-red-600{% else %}text-gray-800{% endif %}">{{ row.live.calls_waiting }}</p>
+                    <p class="text-[9px] text-gray-500 uppercase tracking-wide">Waiting</p>
+                </div>
+            </div>
+
+            <div class="flex justify-between text-[10px] border-t border-slate-100 pt-2">
+                {% if row.queue.is_active %}
+                    <span class="text-green-600 font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Active</span>
+                {% else %}
+                    <span class="text-slate-400 font-semibold"><i class="fas fa-circle text-[6px] mr-1"></i>Inactive</span>
+                {% endif %}
+                <span class="text-slate-400">{{ row.queue.get_strategy_display }}</span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center text-slate-400 text-[12px] py-8 bg-white rounded-md border border-dashed border-slate-300">
+            No groups yet. Click "New Group" to create your first one.
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+<script>
+  (function() {
+    document.querySelectorAll('.queue-card').forEach(function(card) {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.queue-card-action')) return;
+        window.location.href = card.dataset.href;
+      });
+    });
+  })();
+
+  (function() {
+    const toggleBtn = document.getElementById('toggleQueueFormBtn');
+    const formContainer = document.getElementById('queueFormContainer');
+    const toggleIcon = document.getElementById('toggleQueueIcon');
+    const toggleText = document.getElementById('toggleQueueText');
+
+    let isOpen = formContainer.dataset.hasErrors === 'true';
+
+    toggleBtn.addEventListener('click', function() {
+      isOpen = !isOpen;
+
+      if (isOpen) {
+        formContainer.classList.remove('grid-rows-[0fr]', 'opacity-0');
+        formContainer.classList.add('grid-rows-[1fr]', 'opacity-100');
+        toggleIcon.classList.remove('fa-plus');
+        toggleIcon.classList.add('fa-times');
+        toggleBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+        toggleText.textContent = 'Cancel';
+      } else {
+        formContainer.classList.remove('grid-rows-[1fr]', 'opacity-100');
+        formContainer.classList.add('grid-rows-[0fr]', 'opacity-0');
+        toggleIcon.classList.remove('fa-times');
+        toggleIcon.classList.add('fa-plus');
+        toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        toggleBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        toggleText.textContent = 'New Group';
+      }
+    });
+  })();
+</script>
+{% endblock %}
